@@ -1,0 +1,388 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users & Auth ───────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  username      String    @unique
+  email         String?   @unique
+  passwordHash  String?   @map("password_hash")
+  avatarUrl     String?   @map("avatar_url")
+  bio           String?
+  reputation    Int       @default(0)
+  role          String    @default("user") // user, moderator, admin
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  accounts       Account[]
+  sessions       Session[]
+  profiles       Profile[]           @relation("ProfileCreator")
+  typings        ProfileTyping[]
+  votes          Vote[]
+  comments       Comment[]
+  commentVotes   CommentVote[]
+  flags          ModerationItem[]    @relation("FlaggedBy")
+  reviewedItems  ModerationItem[]    @relation("ReviewedBy")
+  reputationEvents  ReputationEvent[]  @relation("UserReputation")
+  activities     Activity[]
+  collections    Collection[]
+  collectionItems CollectionItem[]  @relation("CollectionItemCreator")
+  evidence       Evidence[]
+  achievements   UserAchievement[]
+  testResults    TestResult[]
+
+  @@map("users")
+}
+
+model Account {
+  id               String  @id @default(uuid()) @db.Uuid
+  userId           String  @map("user_id") @db.Uuid
+  type             String  @default("oauth")
+  provider         String
+  providerAccountId String @map("provider_account_id")
+  refreshToken     String? @map("refresh_token")
+  accessToken      String? @map("access_token")
+  expiresAt        Int?    @map("expires_at")
+  tokenType        String? @map("token_type")
+  scope            String?
+  idToken          String? @map("id_token")
+  sessionState     String? @map("session_state")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  sessionToken String @unique @map("session_token")
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── Typing Systems ─────────────────────────────────────────
+
+model TypingSystem {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  config      Json     // type definitions, dimensions, metadata
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  typings ProfileTyping[]
+
+  @@map("typing_systems")
+}
+
+// ─── Categories ─────────────────────────────────────────────
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  parentId    String?  @map("parent_id") @db.Uuid
+  sortOrder   Int      @default(0) @map("sort_order")
+  icon        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  parent  Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  profiles Profile[]
+
+  @@map("categories")
+}
+
+// ─── Profiles ───────────────────────────────────────────────
+
+model Profile {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  categoryId  String?  @map("category_id") @db.Uuid
+  description String?
+  imageUrl    String?  @map("image_url")
+  imageModeration String @default("approved") @map("image_moderation") // approved, pending, rejected
+  imageUploadedBy String? @map("image_uploaded_by") @db.Uuid
+  bio         String?
+  externalIds Json?    @map("external_ids") // {wikidata, imdb, wikipedia, ...}
+  metadata    Json?    // {born, occupation, ...}
+  createdBy   String?  @map("created_by") @db.Uuid
+  isVerified  Boolean  @default(false) @map("is_verified")
+  viewCount   Int      @default(0) @map("view_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  category Category?      @relation(fields: [categoryId], references: [id])
+  creator  User?          @relation("ProfileCreator", fields: [createdBy], references: [id])
+  typings  ProfileTyping[]
+  comments Comment[]
+  collectionItems CollectionItem[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([name])
+  @@map("profiles")
+}
+
+// ─── Type Assignments ───────────────────────────────────────
+
+model ProfileTyping {
+  id              String   @id @default(uuid()) @db.Uuid
+  profileId       String   @map("profile_id") @db.Uuid
+  typingSystemId  String   @map("typing_system_id") @db.Uuid
+  typeValue       String   @map("type_value") // "INFP", "4w5", "O:85 C:70..."
+  confidence      Float    @default(0.0) // aggregate consensus 0-1
+  details         Json?    // wing, instinctual stack, function order, etc.
+  evidenceUrls    String[] @map("evidence_urls")
+  isCommunity     Boolean  @default(true) @map("is_community")
+  createdBy       String?  @map("created_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  typingSystem TypingSystem @relation(fields: [typingSystemId], references: [id])
+  creator      User?        @relation(fields: [createdBy], references: [id])
+  votes        Vote[]
+  evidence     Evidence[]
+
+  @@unique([profileId, typingSystemId, typeValue, createdBy])
+  @@index([typingSystemId, typeValue])
+  @@index([profileId])
+  @@map("profile_typings")
+}
+
+// ─── Votes ──────────────────────────────────────────────────
+
+model Vote {
+  id               String   @id @default(uuid()) @db.Uuid
+  profileTypingId  String   @map("profile_typing_id") @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  voteValue        Int      @map("vote_value") // -1 or 1
+  weight           Float    @default(1.0) // reputation multiplier
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  profileTyping ProfileTyping @relation(fields: [profileTypingId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([profileTypingId, userId])
+  @@index([profileTypingId])
+  @@index([userId])
+  @@map("votes")
+}
+
+// ─── Comments ───────────────────────────────────────────────
+
+model Comment {
+  id         String   @id @default(uuid()) @db.Uuid
+  profileId  String   @map("profile_id") @db.Uuid
+  parentId   String?  @map("parent_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  body       String
+  voteCount  Int      @default(0) @map("vote_count")
+  isDeleted  Boolean  @default(false) @map("is_deleted")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  profile Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentThread")
+  user    User      @relation(fields: [userId], references: [id])
+  votes   CommentVote[]
+
+  @@index([profileId])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model CommentVote {
+  id        String   @id @default(uuid()) @db.Uuid
+  commentId String   @map("comment_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  voteValue Int      @map("vote_value") // -1 or 1
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@map("comment_votes")
+}
+
+// ─── Moderation ─────────────────────────────────────────────
+
+model ModerationItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  contentType String   @map("content_type") // profile, comment, typing
+  contentId   String   @map("content_id") @db.Uuid
+  flaggedBy   String?  @map("flagged_by") @db.Uuid
+  reason      String?
+  status      String   @default("pending") // pending, approved, rejected
+  reviewedBy  String?  @map("reviewed_by") @db.Uuid
+  reviewedAt  DateTime? @map("reviewed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  flagger User?  @relation("FlaggedBy", fields: [flaggedBy], references: [id])
+  reviewer User? @relation("ReviewedBy", fields: [reviewedBy], references: [id])
+
+  @@map("moderation_queue")
+}
+
+// ─── Reputation Events ──────────────────────────────────────
+
+model ReputationEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  eventType   String   @map("event_type") // profile_created, upvote_received, etc.
+  points      Int
+  referenceId String?  @map("reference_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation("UserReputation", fields: [userId], references: [id])
+
+  @@map("reputation_events")
+}
+
+// ─── Activity Feed ──────────────────────────────────────────
+
+model Activity {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  activityType String   @map("activity_type") // created_profile, voted, commented
+  data         Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@map("activities")
+}
+
+// ─── Collections ────────────────────────────────────────────
+
+model Collection {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  userId      String   @map("user_id") @db.Uuid
+  isPublic    Boolean  @default(true) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user    User             @relation(fields: [userId], references: [id])
+  items   CollectionItem[]
+
+  @@index([userId])
+  @@index([slug])
+  @@map("collections")
+}
+
+model CollectionItem {
+  id           String   @id @default(uuid()) @db.Uuid
+  collectionId String   @map("collection_id") @db.Uuid
+  profileId    String   @map("profile_id") @db.Uuid
+  addedBy      String   @map("added_by") @db.Uuid
+  note         String?
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  adder      User      @relation("CollectionItemCreator", fields: [addedBy], references: [id])
+
+  @@unique([collectionId, profileId])
+  @@index([collectionId])
+  @@index([profileId])
+  @@map("collection_items")
+}
+
+// ─── Evidence & Citations ────────────────────────────────────
+
+model Evidence {
+  id              String   @id @default(uuid()) @db.Uuid
+  profileTypingId String   @map("profile_typing_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  evidenceText    String   @map("evidence_text")
+  sourceUrl       String?  @map("source_url")
+  sourceLabel     String?  @map("source_label")
+  voteCount       Int      @default(0) @map("vote_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  profileTyping ProfileTyping @relation(fields: [profileTypingId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id])
+
+  @@index([profileTypingId])
+  @@map("evidence")
+}
+
+// ─── Achievements ────────────────────────────────────────────
+
+model Achievement {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  name        String
+  description String
+  icon        String   @default("🏆")
+  criteria    Json     // { type: "votes_cast" | "profiles_typed" | "typings_submitted" | "comments_made", threshold: 10 }
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  achievementId String   @map("achievement_id") @db.Uuid
+  earnedAt      DateTime @default(now()) @map("earned_at")
+
+  user        User        @relation(fields: [userId], references: [id])
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// ─── Personality Test Results ────────────────────────────────
+
+model TestResult {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  testType  String   @map("test_type") // "mbti" or "enneagram"
+  result    String   // "INFP" or "4w5"
+  answers   Json     // array of question answers
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("test_results")
+}
