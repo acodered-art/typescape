@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProfileCard } from "@/components/profile-card";
+import { StreaksAndChallenges } from "@/components/streaks/streaks-display";
 
 interface HomeData {
   stats: { profiles: number; typings: number; votes: number; users: number; comments: number };
@@ -59,6 +60,11 @@ export default async function HomePage() {
             <div className="text-[#4a5a70] mt-0.5">{s.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* Streaks & Challenges */}
+      <div className="max-w-xs mx-auto">
+        <StreaksAndChallenges />
       </div>
 
       {/* Categories */}

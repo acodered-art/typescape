@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { TypingBadge } from "@/components/typing-badge";
+import { FollowButton } from "@/components/follow-button";
 
 interface UserData {
   username: string;
@@ -91,7 +92,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             )}
           </h1>
           {user.bio && <p className="text-sm text-[#7888a0] mt-1">{user.bio}</p>}
-          <p className="text-xs text-[#4a5a70] mt-1">Joined {timeAgo(user.createdAt)}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-xs text-[#4a5a70]">Joined {timeAgo(user.createdAt)}</p>
+            <FollowButton username={user.username} />
+          </div>
         </div>
       </div>
 

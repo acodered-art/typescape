@@ -40,6 +40,10 @@ model User {
   evidence       Evidence[]
   achievements   UserAchievement[]
   testResults    TestResult[]
+  followers      Follow[]            @relation("Following")
+  following      Follow[]            @relation("Follower")
+  streaks        Streak[]
+  challengeCompletions UserChallengeCompletion[]
 
   @@map("users")
 }
@@ -385,4 +389,70 @@ model TestResult {
 
   @@index([userId])
   @@map("test_results")
+}
+
+// ─── Following ───────────────────────────────────────────────
+
+model Follow {
+  id          String   @id @default(uuid()) @db.Uuid
+  followerId  String   @map("follower_id") @db.Uuid
+  followingId String   @map("following_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("Follower", fields: [followerId], references: [id])
+  following User @relation("Following", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+// ─── Streaks ─────────────────────────────────────────────────
+
+model Streak {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  streakType String  @map("streak_type") // "daily_login" | "daily_typing" | "daily_vote"
+  count     Int      @default(0)
+  lastDate  DateTime @map("last_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, streakType])
+  @@map("streaks")
+}
+
+// ─── Daily Challenges ────────────────────────────────────────
+
+model DailyChallenge {
+  id          String   @id @default(uuid()) @db.Uuid
+  date        DateTime @unique
+  title       String
+  description String
+  challengeType String @map("challenge_type") // "type_profile" | "vote" | "comment" | "test"
+  target      Int      @default(1)
+  reward      Int      @default(10)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  completions UserChallengeCompletion[]
+
+  @@map("daily_challenges")
+}
+
+model UserChallengeCompletion {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  challengeId String   @map("challenge_id") @db.Uuid
+  progress    Int      @default(0)
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user      User            @relation(fields: [userId], references: [id])
+  challenge DailyChallenge  @relation(fields: [challengeId], references: [id])
+
+  @@unique([userId, challengeId])
+  @@map("user_challenge_completions")
 }

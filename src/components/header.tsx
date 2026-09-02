@@ -53,6 +53,8 @@ export function Header() {
           <Link href="/search" className="hover:text-[#64ffda] transition-colors">Browse</Link>
           <Link href="/systems" className="hover:text-[#64ffda] transition-colors">Systems</Link>
           <Link href="/collections" className="hover:text-[#64ffda] transition-colors">Collections</Link>
+          <Link href="/compare" className="hover:text-[#64ffda] transition-colors">Compare</Link>
+          <Link href="/feed" className="hover:text-[#64ffda] transition-colors">Feed</Link>
           <Link href="/test" className="hover:text-[#64ffda] transition-colors">Tests</Link>
           <Link href="/create" className="hover:text-[#64ffda] transition-colors">Create</Link>
         </nav>
