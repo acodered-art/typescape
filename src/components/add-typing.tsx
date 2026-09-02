@@ -1,24 +1,27 @@
 "use client";
 import { useEffect, useState } from "react";
-import { TYPING_SYSTEMS } from "@/lib/typing-systems";
 
 export function AddTypingForm({ profileSlug }: { profileSlug: string }) {
   const [open, setOpen] = useState(false);
   const [systemId, setSystemId] = useState("");
   const [typeValue, setTypeValue] = useState("");
-  const [systems, setSystems] = useState<{ id: string; slug: string; name: string }[]>([]);
+  const [systems, setSystems] = useState<{ id: string; slug: string; name: string; types: { value: string; label: string }[] }[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     fetch("/api/systems")
       .then((r) => r.json())
-      .then((data) => setSystems(data.filter((s: { types?: unknown[] }) => s.types && Array.isArray(s.types) && s.types.length > 0)))
+      .then((data) => {
+        const mapped = (data as { id: string; slug: string; name: string; config: { types?: { value: string; label: string }[] } }[])
+          .filter((s) => s.config?.types && Array.isArray(s.config.types) && s.config.types.length > 0)
+          .map((s) => ({ id: s.id, slug: s.slug, name: s.name, types: s.config.types! }));
+        setSystems(mapped);
+      })
       .catch(() => {});
   }, []);
 
   const sys = systems.find((s) => s.id === systemId);
-  const sysDef = TYPING_SYSTEMS.find((s) => s.slug === sys?.slug);
 
   const handleSubmit = async () => {
     if (!systemId || !typeValue) return;
@@ -73,10 +76,10 @@ export function AddTypingForm({ profileSlug }: { profileSlug: string }) {
                 value={typeValue}
                 onChange={(e) => setTypeValue(e.target.value)}
                 className="w-full px-2 py-1.5 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc]"
-                disabled={!sysDef}
+                disabled={!sys}
               >
                 <option value="">Select type...</option>
-                {sysDef?.types?.map((t) => (
+                {sys?.types?.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
