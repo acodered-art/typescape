@@ -1,10 +1,7 @@
 "use client";
-import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function SignInPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -13,58 +10,70 @@ export default function SignInPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const doRegister = async () => {
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setSuccess("Account created! Sign in below.");
+      setMode("signin");
+      setUsername("");
+      setPassword("");
+    } else {
+      setError(data.error || "Registration failed");
+    }
+  };
+
+  const doLogin = async () => {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    if (res.ok) {
+      window.location.href = "/";
+    } else {
+      const data = await res.json();
+      setError(data.error || "Sign in failed");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     setSuccess("");
-
     try {
       if (mode === "signup") {
-        const res = await fetch("/api/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, email, password }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setSuccess(data.message);
-          setMode("signin");
-          setUsername("");
-          setPassword("");
-        } else {
-          setError(data.error || "Registration failed");
-        }
+        await doRegister();
       } else {
-        const res = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          // Cookies are set by the server. Refresh to pick them up.
-          window.location.href = "/";
-        } else {
-          setError(data.error || "Sign in failed");
-        }
+        await doLogin();
       }
     } catch {
-      setError("Network error");
+      setError("Network error — check your connection");
     } finally {
       setLoading(false);
     }
   };
 
+  const switchMode = (m: "signin" | "signup") => {
+    setMode(m);
+    setError("");
+    setSuccess("");
+  };
+
   return (
     <div className="max-w-sm mx-auto py-16 space-y-6">
       <h1 className="text-xl font-bold text-[#e8ecf4] text-center">
-        {mode === "signin" ? "Sign in to TypeScape" : "Create an Account"}
+        {mode === "signin" ? "Sign in" : "Create Account"}
       </h1>
       <p className="text-sm text-[#7888a0] text-center">
         {mode === "signin"
           ? "Sign in to vote, comment, and create profiles."
-          : "Join the community and start typing."}
+          : "Join the community."}
       </p>
 
       {error && (
@@ -78,7 +87,6 @@ export default function SignInPage() {
         </div>
       )}
 
-      {/* Email/Password Form */}
       <form onSubmit={handleSubmit} className="space-y-3">
         {mode === "signup" && (
           <div>
@@ -126,7 +134,6 @@ export default function SignInPage() {
         </button>
       </form>
 
-      {/* Divider */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-[#1a2234]" />
@@ -136,35 +143,33 @@ export default function SignInPage() {
         </div>
       </div>
 
-      {/* OAuth buttons */}
       <div className="space-y-2">
-        <Link
+        <a
           href="/api/auth/signin/google"
           className="block w-full text-center px-4 py-2.5 rounded border border-[#1a2234] bg-[#141c2b] text-sm text-[#c8d0dc] hover:border-[#64ffda]/40 transition-colors"
         >
           Sign in with Google
-        </Link>
-        <Link
+        </a>
+        <a
           href="/api/auth/signin/discord"
           className="block w-full text-center px-4 py-2.5 rounded border border-[#1a2234] bg-[#141c2b] text-sm text-[#c8d0dc] hover:border-[#64ffda]/40 transition-colors"
         >
           Sign in with Discord
-        </Link>
+        </a>
       </div>
 
-      {/* Toggle mode */}
       <p className="text-xs text-[#4a5a70] text-center">
         {mode === "signin" ? (
           <>
             Don&apos;t have an account?{" "}
-            <button onClick={() => { setMode("signup"); setError(""); setSuccess(""); }} className="text-[#64ffda] hover:underline">
+            <button onClick={() => switchMode("signup")} className="text-[#64ffda] hover:underline">
               Sign up
             </button>
           </>
         ) : (
           <>
             Already have an account?{" "}
-            <button onClick={() => { setMode("signin"); setError(""); setSuccess(""); }} className="text-[#64ffda] hover:underline">
+            <button onClick={() => switchMode("signin")} className="text-[#64ffda] hover:underline">
               Sign in
             </button>
           </>
