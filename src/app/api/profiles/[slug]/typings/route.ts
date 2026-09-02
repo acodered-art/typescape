@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/session";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(
   req: Request,
@@ -9,6 +10,12 @@ export async function POST(
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const rl = rateLimit(`typing:${ip}`, 20, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many typings" }, { status: 429 });
   }
 
   const { slug } = await params;

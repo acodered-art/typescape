@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/session";
+import { rateLimit } from "@/lib/rate-limit";
+
+// Strip HTML tags to prevent XSS
+function sanitize(text: string): string {
+  return text.replace(/<[^>]*>/g, "").replace(/[&<>"']/g, (c) => {
+    const m: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;" };
+    return m[c] || c;
+  });
+}
 
 export async function GET(
   _req: Request,
@@ -48,6 +57,12 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const rl = rateLimit(`comment:${ip}`, 10, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many comments. Slow down." }, { status: 429 });
+  }
+
   const { slug } = await params;
   const body = await req.json();
   const { body: text, parentId } = body;
@@ -85,7 +100,7 @@ export async function POST(
       profileId: profile.id,
       parentId: parentId || null,
       userId: session.user.id,
-      body: text.trim(),
+      body: sanitize(text.trim()),
     },
     include: {
       user: { select: { username: true, avatarUrl: true, reputation: true } },

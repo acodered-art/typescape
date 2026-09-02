@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { generateSlug } from "@/lib/utils";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -97,6 +98,12 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const rl = rateLimit(`profile-create:${ip}`, 3, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many profiles" }, { status: 429 });
   }
 
   const body = await req.json();
