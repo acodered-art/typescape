@@ -6,12 +6,13 @@ export function middleware(req: NextRequest) {
   if (!req.nextUrl.pathname.startsWith("/_next") && !req.nextUrl.pathname.startsWith("/api")) {
     const response = NextResponse.next();
 
-    // Security headers — strict CSP without unsafe-inline/unsafe-eval
-    // Next.js App Router with RSC works without unsafe-inline when using
-    // nonces, but for simplicity we use 'self' only (no inline scripts/styles)
+    // Security headers — CSP
+    // Next.js App Router uses inline scripts for RSC hydration, so
+    // script-src requires 'unsafe-inline'. 'unsafe-eval' is NOT needed.
+    // TODO: replace 'unsafe-inline' with per-request nonces for stricter CSP
     response.headers.set(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     );
     response.headers.set("X-Content-Type-Options", "nosniff");
     response.headers.set("X-Frame-Options", "DENY");

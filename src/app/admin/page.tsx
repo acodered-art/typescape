@@ -1,9 +1,8 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/session";
 import AdminDashboard from "./admin-client";
 
 export default async function AdminPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const isAdmin = session?.user?.role === "admin";
 
   if (!isAdmin) {
