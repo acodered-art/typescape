@@ -149,22 +149,34 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
         {/* Results */}
         {profiles.length === 0 ? (
-          <div className="text-center py-12 text-[#4a5a70]">
-            <p className="text-lg">No profiles found.</p>
-            <p className="text-sm mt-1">Try different filters or be the first to create one.</p>
+          <div className="text-center py-16 text-[#4a5a70]">
+            <div className="text-4xl mb-4">🔍</div>
+            <p className="text-lg">No profiles found for "{q || "this search"}"</p>
+            <p className="text-sm mt-1">Be the first to add it to the database.</p>
             <Link
               href={`/create${q ? `?name=${encodeURIComponent(q)}` : ""}`}
-              className="inline-block mt-4 px-4 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 transition-colors"
+              className="inline-block mt-6 px-6 py-3 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 transition-colors font-semibold"
             >
-              {q ? `Add "${q}"` : "Add a Profile"}
+              ✚ Add "{q || "a Profile"}"
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {profiles.map((p: { name: string; slug: string; imageUrl: string | null; description: string | null; category: { name: string; slug: string } | null; typings: { typingSystem: { name: string; slug: string }; typeValue: string; confidence: number }[] }) => (
-              <ProfileCard key={p.slug} {...p} />
-            ))}
-          </div>
+          <>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-[#4a5a70]">Showing {profiles.length} of {total}</span>
+              <Link
+                href={`/create${q ? `?name=${encodeURIComponent(q)}` : ""}`}
+                className="text-xs text-[#64ffda] hover:underline"
+              >
+                ✚ Add new
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {profiles.map((p: { name: string; slug: string; imageUrl: string | null; description: string | null; category: { name: string; slug: string } | null; typings: { typingSystem: { name: string; slug: string }; typeValue: string; confidence: number }[] }) => (
+                <ProfileCard key={p.slug} {...p} />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
