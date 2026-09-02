@@ -4,6 +4,7 @@ import { VotePanel } from "@/components/vote-panel";
 import { CommentSection } from "@/components/comment-section";
 import { AddToCollectionInline } from "@/components/add-to-collection";
 import { UploadImageButton } from "@/components/upload-image";
+import { AddTypingForm } from "@/components/add-typing";
 import { ProfileCard } from "@/components/profile-card";
 
 interface ProfilePageData {
@@ -132,9 +133,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
 
       {/* Typings by System — Replace static display with interactive VotePanel */}
       <section>
-        <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider mb-3">
-          Personality Typings
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider">
+            Personality Typings
+          </h2>
+          <AddTypingForm profileSlug={profile.slug} />
+        </div>
         <VotePanel profileSlug={profile.slug} />
       </section>
 

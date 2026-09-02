@@ -26,7 +26,10 @@ export function StreaksAndChallenges() {
         fetch("/api/daily-challenge"),
       ]);
       if (sRes.ok) setStreaks(await sRes.json());
-      if (cRes.ok) setChallenge(await cRes.json());
+      if (cRes.ok) {
+        const data = await cRes.json();
+        if (data && data.challenge) setChallenge(data);
+      }
     } catch {} finally {
       setLoading(false);
     }

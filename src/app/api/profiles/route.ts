@@ -5,9 +5,13 @@ import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET(req: Request) {
   const ip = req.headers.get("x-forwarded-for") || "unknown";
-  const rl = rateLimit(`profiles-get:${ip}`, 60, 60_000);
-  if (!rl.allowed) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  // Skip rate limiting for SSR self-fetches (localhost) and increase limit for real clients
+  const isLocal = ip === "127.0.0.1" || ip === "::1" || ip === "unknown" || ip.startsWith("172.");
+  if (!isLocal) {
+    const rl = rateLimit(`profiles-get:${ip}`, 60, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
   }
 
   const { searchParams } = new URL(req.url);
