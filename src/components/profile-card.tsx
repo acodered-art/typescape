@@ -15,9 +15,13 @@ export function ProfileCard({ name, slug, imageUrl, description, category, typin
   return (
     <div className="block p-4 rounded-lg border border-[#1a2234] bg-[#0e1420] hover:border-[#2a3a4a] hover:bg-[#141c2b] transition-all group">
       <Link href={`/profiles/${slug}`} className="flex gap-3">
-        {imageUrl && (
+        {imageUrl ? (
           <div className="w-14 h-14 rounded-md overflow-hidden shrink-0 bg-[#1a2234]">
             <img src={imageUrl} alt={name} className="w-full h-full object-cover" loading="lazy" />
+          </div>
+        ) : (
+          <div className="w-14 h-14 rounded-md overflow-hidden shrink-0 bg-[#1a2234] flex items-center justify-center text-lg font-bold text-[#4a5a70]">
+            {name.charAt(0).toUpperCase()}
           </div>
         )}
         <div className="min-w-0 flex-1">

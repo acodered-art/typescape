@@ -69,15 +69,19 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
     <div className="space-y-6">
       {/* Header */}
       <div className="flex gap-4 items-start">
-        {profile.imageUrl && (
-          <div className="w-24 h-24 rounded-lg overflow-hidden shrink-0 bg-[#1a2234]">
+        <div className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0 bg-[#1a2234]">
+          {profile.imageUrl ? (
             <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
-          </div>
-        )}
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-[#4a5a70]">
+              {profile.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <UploadImageButton profileSlug={profile.slug} currentImage={profile.imageUrl} />
+        </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-[#e8ecf4]">{profile.name}</h1>
-            <UploadImageButton profileSlug={profile.slug} />
           </div>
           {profile.category && (
             <Link

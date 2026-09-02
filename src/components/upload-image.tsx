@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-export function UploadImageButton({ profileSlug }: { profileSlug: string }) {
+export function UploadImageButton({ profileSlug, currentImage }: { profileSlug: string; currentImage?: string | null }) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,8 +20,9 @@ export function UploadImageButton({ profileSlug }: { profileSlug: string }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage("Image submitted for moderation. It will appear after approval.");
+        setMessage("Image submitted! An admin will review it shortly.");
         setUrl("");
+        setTimeout(() => { setOpen(false); setMessage(""); window.location.reload(); }, 2000);
       } else {
         setMessage(data.error || "Failed");
       }
@@ -36,9 +37,12 @@ export function UploadImageButton({ profileSlug }: { profileSlug: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-[#7888a0] hover:text-[#64ffda] transition-colors"
+        className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/40 transition-colors group rounded-lg"
+        title="Upload image"
       >
-        Upload Image
+        <span className="opacity-0 group-hover:opacity-100 text-xs text-white bg-black/60 px-2 py-1 rounded">
+          {currentImage ? "Change" : "Add photo"}
+        </span>
       </button>
 
       {open && (
@@ -47,7 +51,8 @@ export function UploadImageButton({ profileSlug }: { profileSlug: string }) {
             className="w-full max-w-md p-6 rounded-lg border border-[#1a2234] bg-[#0e1420] mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-sm font-semibold text-[#e8ecf4] mb-3">Upload Profile Image</h3>
+            <h3 className="text-sm font-semibold text-[#e8ecf4] mb-1">Upload Profile Image</h3>
+            <p className="text-xs text-[#7888a0] mb-4">Paste a URL to an image. It will be reviewed by an admin before appearing.</p>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="block text-xs text-[#7888a0] mb-1">Image URL</label>
@@ -55,13 +60,13 @@ export function UploadImageButton({ profileSlug }: { profileSlug: string }) {
                   type="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
+                  placeholder="https://example.com/character.jpg"
                   required
                   className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40"
                 />
               </div>
               {message && (
-                <div className="p-2 text-xs rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20">
+                <div className={`p-2 text-xs rounded border ${message.includes("submitted") ? "bg-[#64ffda]/10 text-[#64ffda] border-[#64ffda]/20" : "bg-[#ff6b6b]/10 text-[#ff6b6b] border-[#ff6b6b]/20"}`}>
                   {message}
                 </div>
               )}
@@ -71,14 +76,14 @@ export function UploadImageButton({ profileSlug }: { profileSlug: string }) {
                   onClick={() => setOpen(false)}
                   className="flex-1 px-3 py-2 text-sm rounded border border-[#1a2234] text-[#7888a0] hover:bg-[#1a2234] transition-colors"
                 >
-                  Close
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !url.trim()}
                   className="flex-1 px-3 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 disabled:opacity-30 transition-colors"
                 >
-                  {loading ? "..." : "Submit"}
+                  {loading ? "..." : "Submit for Review"}
                 </button>
               </div>
             </form>
