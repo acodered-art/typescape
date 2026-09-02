@@ -17,9 +17,6 @@ export function CreateProfileForm({ initialName }: { initialName?: string }) {
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [showNewCategory, setShowNewCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryParent, setNewCategoryParent] = useState("");
 
   // Typing on creation
   const [addTyping, setAddTyping] = useState(false);
@@ -54,14 +51,6 @@ export function CreateProfileForm({ initialName }: { initialName?: string }) {
   const selected = categories
     .flatMap((c) => c.children || [])
     .find((c) => c.id === categoryId);
-
-  const handleCreateCategory = async () => {
-    if (!newCategoryName.trim()) return;
-    // Will be implemented with category creation API
-    setShowNewCategory(false);
-    setNewCategoryName("");
-    setSearchTerm(newCategoryName.trim());
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
