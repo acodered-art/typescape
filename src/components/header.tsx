@@ -21,7 +21,17 @@ export function Header() {
   const router = useRouter();
 
   const refreshUser = useCallback(() => {
-    setUser(readUserCookie());
+    const cookieUser = readUserCookie();
+    setUser(cookieUser);
+    // Fetch full user info (with role) for OAuth users
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.user) {
+          setUser({ username: data.user.username, role: data.user.role });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -53,6 +63,7 @@ export function Header() {
           <Link href="/search" className="hover:text-[#64ffda] transition-colors">Browse</Link>
           <Link href="/systems" className="hover:text-[#64ffda] transition-colors">Systems</Link>
           <Link href="/collections" className="hover:text-[#64ffda] transition-colors">Collections</Link>
+          <Link href="/groups" className="hover:text-[#64ffda] transition-colors">Groups</Link>
           <Link href="/compare" className="hover:text-[#64ffda] transition-colors">Compare</Link>
           <Link href="/feed" className="hover:text-[#64ffda] transition-colors">Feed</Link>
           <Link href="/test" className="hover:text-[#64ffda] transition-colors">Tests</Link>
@@ -76,6 +87,21 @@ export function Header() {
               >
                 {user.username}
               </Link>
+              <Link
+                href="/settings"
+                className="text-[#4a5a70] hover:text-[#c8d0dc] transition-colors text-xs"
+                title="Settings"
+              >
+                ⚙
+              </Link>
+              {user.role === "admin" && (
+                <Link
+                  href="/admin"
+                  className="text-[#4a5a70] hover:text-[#64ffda] transition-colors text-xs"
+                >
+                  Admin
+                </Link>
+              )}
               <button
                 onClick={handleSignOut}
                 className="text-[#4a5a70] hover:text-[#ff6b6b] transition-colors text-xs"

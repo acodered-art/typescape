@@ -29,10 +29,11 @@ model User {
   sessions       Session[]
   profiles       Profile[]           @relation("ProfileCreator")
   typings        ProfileTyping[]
-    disorderVotes  DisorderVote[]
-    votes          Vote[]
-    comments       Comment[]
-    commentVotes   CommentVote[]
+  disorderVotes  DisorderVote[]
+  traitVotes     TraitVote[]
+  votes          Vote[]
+  comments       Comment[]
+  commentVotes   CommentVote[]
   flags          ModerationItem[]    @relation("FlaggedBy")
   reviewedItems  ModerationItem[]    @relation("ReviewedBy")
   reputationEvents  ReputationEvent[]  @relation("UserReputation")
@@ -46,6 +47,10 @@ model User {
   following      Follow[]            @relation("Follower")
   streaks        Streak[]
   challengeCompletions UserChallengeCompletion[]
+  groupMemberships   GroupMember[]
+  groupPosts         GroupPost[]
+  groupPostReplies   GroupPostReply[]
+  groupsCreated      Group[]        @relation("GroupCreator")
 
   @@map("users")
 }
@@ -151,6 +156,7 @@ model Profile {
   comments Comment[]
   collectionItems CollectionItem[]
   disorderVotes DisorderVote[]
+  traitVotes    TraitVote[]
 
   @@index([slug])
   @@index([categoryId])
@@ -474,6 +480,7 @@ model Disorder {
   comorbiditiesFrom DisorderComorbidity[] @relation("ComorbidityFrom")
   comorbiditiesTo   DisorderComorbidity[] @relation("ComorbidityTo")
   votes             DisorderVote[]
+  traitVectors      DisorderTraitVector[]
 
   @@map("disorders")
 }
@@ -508,4 +515,128 @@ model DisorderVote {
   @@index([profileId])
   @@index([disorderId])
   @@map("disorder_votes")
+}
+
+// ─── Trait Dimensions (Talanov-style continuous vector) ────────
+
+model TraitDimension {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  name        String
+  description String?
+  lowLabel    String   @map("low_label")
+  highLabel   String   @map("high_label")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  disorderVectors DisorderTraitVector[]
+  traitVotes      TraitVote[]
+
+  @@map("trait_dimensions")
+}
+
+model DisorderTraitVector {
+  id         String @id @default(uuid()) @db.Uuid
+  disorderId String @map("disorder_id") @db.Uuid
+  traitId    String @map("trait_id") @db.Uuid
+  value      Int    // -3 to +3
+
+  disorder Disorder       @relation(fields: [disorderId], references: [id], onDelete: Cascade)
+  trait    TraitDimension @relation(fields: [traitId], references: [id])
+
+  @@unique([disorderId, traitId])
+  @@map("disorder_trait_vectors")
+}
+
+model TraitVote {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  traitId   String   @map("trait_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  value     Int      // -3 to +3
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  trait   TraitDimension @relation(fields: [traitId], references: [id])
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, traitId, userId])
+  @@index([profileId])
+  @@map("trait_votes")
+}
+
+// ─── Community Groups ─────────────────────────────────────────
+
+model Group {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  icon        String?
+  category    String   @default("fandom") // fandom, system, theory, help
+  createdBy   String   @map("created_by") @db.Uuid
+  isPublic    Boolean  @default(true) @map("is_public")
+  memberCount Int      @default(0) @map("member_count")
+  postCount   Int      @default(0) @map("post_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  creator  User           @relation("GroupCreator", fields: [createdBy], references: [id])
+  members  GroupMember[]
+  posts    GroupPost[]
+
+  @@index([slug])
+  @@index([category])
+  @@map("groups")
+}
+
+model GroupMember {
+  id        String   @id @default(uuid()) @db.Uuid
+  groupId   String   @map("group_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  role      String   @default("member") // member, moderator, admin
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+model GroupPost {
+  id        String   @id @default(uuid()) @db.Uuid
+  groupId   String   @map("group_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String
+  body      String
+  pinOrder  Int      @default(0) @map("pin_order")
+  replyCount Int     @default(0) @map("reply_count")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  group   Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user    User              @relation(fields: [userId], references: [id])
+  replies GroupPostReply[]
+
+  @@index([groupId])
+  @@index([createdAt])
+  @@map("group_posts")
+}
+
+model GroupPostReply {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post GroupPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id])
+
+  @@index([postId])
+  @@map("group_post_replies")
 }

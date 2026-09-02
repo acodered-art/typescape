@@ -138,11 +138,48 @@ export default function AdminDashboard() {
                     <span className="text-[#64ffda] text-xs uppercase">{user.role}</span>
                   )}
                 </div>
-                <div className="flex gap-3 text-xs text-[#4a5a70]">
-                  <span>{user.reputation} rep</span>
-                  <span>{user._count.profiles} profiles</span>
-                  <span>{user._count.typings} typings</span>
-                  <span>{user._count.votes} votes</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-3 text-xs text-[#4a5a70]">
+                    <span>{user.reputation} rep</span>
+                    <span>{user._count.profiles} profiles</span>
+                    <span>{user._count.typings} typings</span>
+                    <span>{user._count.votes} votes</span>
+                  </div>
+                  <div className="flex gap-1 ml-2 border-l border-[#1a2234] pl-2">
+                    {user.role !== "moderator" && (
+                      <button
+                        onClick={async () => {
+                          await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "moderator" }) });
+                          window.location.reload();
+                        }}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-[#2a3f6e]/20 text-[#8ab4f8] hover:bg-[#2a3f6e]/40"
+                      >
+                        Mod
+                      </button>
+                    )}
+                    {user.role !== "admin" && (
+                      <button
+                        onClick={async () => {
+                          await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "admin" }) });
+                          window.location.reload();
+                        }}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-[#64ffda]/10 text-[#64ffda] hover:bg-[#64ffda]/20"
+                      >
+                        Admin
+                      </button>
+                    )}
+                    {user.role !== "user" && (
+                      <button
+                        onClick={async () => {
+                          await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "user" }) });
+                          window.location.reload();
+                        }}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-[#1a2234] text-[#4a5a70] hover:bg-[#2a3a4a]"
+                      >
+                        Demote
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))

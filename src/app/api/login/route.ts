@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   const isProd = process.env.NODE_ENV === "production";
   const response = NextResponse.json({ user: { id: user.id, username: user.username, email: user.email, role: user.role } });
   response.cookies.set("session_token", token, { httpOnly: true, secure: isProd, sameSite: "lax", maxAge: 7 * 24 * 60 * 60, path: "/" });
-  response.cookies.set("user", JSON.stringify({ username: user.username }), { httpOnly: false, secure: isProd, sameSite: "lax", maxAge: 7 * 24 * 60 * 60, path: "/" });
+  response.cookies.set("user", JSON.stringify({ username: user.username, role: user.role }), { httpOnly: false, secure: isProd, sameSite: "lax", maxAge: 7 * 24 * 60 * 60, path: "/" });
 
   return response;
 }

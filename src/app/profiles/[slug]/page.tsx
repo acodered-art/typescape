@@ -7,6 +7,7 @@ import { UploadImageButton } from "@/components/upload-image";
 import { AddTypingForm } from "@/components/add-typing";
 import { ProfileCard } from "@/components/profile-card";
 import { DisorderVotePanel } from "@/components/disorder-vote-panel";
+import { TraitVotePanel } from "@/components/trait-vote-panel";
 
 interface ProfilePageData {
   id: string;
@@ -145,6 +146,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
 
       {/* Cluster Disorder Voting */}
       <DisorderVotePanel profileSlug={profile.slug} />
+
+      {/* Trait Vector Analysis */}
+      <TraitVotePanel profileSlug={profile.slug} />
 
       {/* Related Characters */}
       {related.length > 0 && (
