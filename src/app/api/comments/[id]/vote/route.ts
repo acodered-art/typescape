@@ -24,6 +24,11 @@ export async function POST(
     return NextResponse.json({ error: "Comment not found" }, { status: 404 });
   }
 
+  // Cannot vote on your own comment
+  if (comment.userId === session.user.id) {
+    return NextResponse.json({ error: "Cannot vote on your own comment" }, { status: 400 });
+  }
+
   // Check existing vote
   const existing = await prisma.commentVote.findUnique({
     where: { commentId_userId: { commentId: id, userId: session.user.id } },

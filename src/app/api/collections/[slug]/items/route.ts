@@ -28,6 +28,11 @@ export async function POST(
     return NextResponse.json({ error: "Collection not found" }, { status: 404 });
   }
 
+  // Only the collection owner or admin can add items
+  if (collection.userId !== session.user.id && session.user.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const profile = await prisma.profile.findUnique({
     where: { slug: profileSlug },
     select: { id: true },

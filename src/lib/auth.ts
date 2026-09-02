@@ -13,9 +13,21 @@ export const authOptions: NextAuthOptions = {
     GitHub({ clientId: process.env.AUTH_GITHUB_ID!, clientSecret: process.env.AUTH_GITHUB_SECRET! }),
   ],
   callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { role: true },
+        });
+        token.role = dbUser?.role ?? "user";
+      }
+      return token;
+    },
     session({ session, token }) {
       if (session.user && token) {
         (session.user as Record<string, unknown>).id = token.sub;
+        (session.user as Record<string, unknown>).role = token.role;
       }
       return session;
     },

@@ -44,6 +44,14 @@ export async function GET(
     return NextResponse.json({ error: "Collection not found" }, { status: 404 });
   }
 
+  // Private collections are only visible to the owner or admin
+  if (!collection.isPublic) {
+    const session = await auth();
+    if (!session?.user || (collection.userId !== session.user.id && session.user.role !== "admin")) {
+      return NextResponse.json({ error: "Collection not found" }, { status: 404 });
+    }
+  }
+
   return NextResponse.json(collection);
 }
 

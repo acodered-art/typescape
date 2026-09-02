@@ -81,10 +81,25 @@ export async function GET(req: Request) {
   const [profiles, total] = await Promise.all([
     prisma.profile.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        categoryId: true,
+        description: true,
+        imageUrl: true,
+        imageModeration: true,
+        bio: true,
+        isVerified: true,
+        viewCount: true,
+        createdAt: true,
+        updatedAt: true,
         category: { select: { name: true, slug: true } },
         typings: {
-          include: {
+          select: {
+            typeValue: true,
+            details: true,
+            isCommunity: true,
             typingSystem: { select: { name: true, slug: true } },
           },
           take: 5,

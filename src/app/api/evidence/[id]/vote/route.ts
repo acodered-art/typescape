@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/session";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(
   req: Request,
@@ -9,6 +10,12 @@ export async function POST(
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const rl = rateLimit(`evidence-vote:${ip}`, 30, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many votes" }, { status: 429 });
   }
 
   const { id } = await params;
@@ -22,6 +29,11 @@ export async function POST(
   const evidence = await prisma.evidence.findUnique({ where: { id } });
   if (!evidence) {
     return NextResponse.json({ error: "Evidence not found" }, { status: 404 });
+  }
+
+  // Cannot vote on your own evidence
+  if (evidence.userId === session.user.id) {
+    return NextResponse.json({ error: "Cannot vote on your own evidence" }, { status: 400 });
   }
 
   await prisma.evidence.update({
