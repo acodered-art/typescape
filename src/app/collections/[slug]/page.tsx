@@ -27,7 +27,7 @@ interface CollectionData {
 }
 
 async function getCollection(slug: string): Promise<CollectionData | null> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const base = "http://localhost:3002";
   try {
     const res = await fetch(`${base}/api/collections/${slug}`, { cache: "no-store" });
     if (!res.ok) return null;

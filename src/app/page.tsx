@@ -10,7 +10,7 @@ interface HomeData {
 }
 
 async function getHomeData(): Promise<HomeData> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const base = "http://localhost:3002";
 
   const [statsRes, recentRes, categoriesRes] = await Promise.all([
     fetch(`${base}/api/stats`, { cache: "no-store" }).catch(() => null),

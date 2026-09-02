@@ -12,7 +12,7 @@ interface CollectionListData {
 }
 
 async function getCollections(): Promise<CollectionListData[]> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const base = "http://localhost:3002";
   try {
     const res = await fetch(`${base}/api/collections`, { cache: "no-store" });
     if (res.ok) return res.json();

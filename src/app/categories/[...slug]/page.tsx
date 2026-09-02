@@ -7,7 +7,7 @@ interface CategoryPageProps {
 }
 
 async function getCategoryData(slug: string) {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const base = "http://localhost:3002";
 
   const [catRes, profilesRes] = await Promise.all([
     fetch(`${base}/api/categories?slug=${encodeURIComponent(slug)}`, { cache: "no-store" }),

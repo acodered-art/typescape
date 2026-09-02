@@ -40,7 +40,7 @@ interface AchievementData {
 }
 
 async function getUser(username: string): Promise<{ user: UserData | null; achievements: AchievementData[] }> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const base = "http://localhost:3002";
   try {
     const [userRes, achRes] = await Promise.all([
       fetch(`${base}/api/user/${username}`, { cache: "no-store" }),

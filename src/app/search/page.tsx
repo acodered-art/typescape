@@ -45,7 +45,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (category) params.category = category;
   if (sort) params.sort = sort;
 
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const base = "http://localhost:3002";
   const { profiles, total, facets } = await getData(params, base);
 
   // Build active filter chips

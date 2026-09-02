@@ -33,7 +33,7 @@ interface ProfilePageData {
 }
 
 async function getProfile(slug: string): Promise<ProfilePageData | null> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const base = "http://localhost:3002";
   try {
     const res = await fetch(`${base}/api/profiles/${slug}`, { cache: "no-store" });
     if (!res.ok) return null;
@@ -50,7 +50,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
   if (!profile) notFound();
 
   // Fetch related profiles
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const base = "http://localhost:3002";
   let related: { name: string; slug: string; imageUrl: string | null; description: string | null; category: { name: string; slug: string } | null; typings: { typingSystem: { name: string; slug: string }; typeValue: string; confidence: number }[] }[] = [];
   try {
     const relRes = await fetch(`${base}/api/profiles/${slug}/related`, { cache: "no-store" });
