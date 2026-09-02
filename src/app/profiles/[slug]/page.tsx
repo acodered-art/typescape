@@ -6,6 +6,7 @@ import { AddToCollectionInline } from "@/components/add-to-collection";
 import { UploadImageButton } from "@/components/upload-image";
 import { AddTypingForm } from "@/components/add-typing";
 import { ProfileCard } from "@/components/profile-card";
+import { DisorderVotePanel } from "@/components/disorder-vote-panel";
 
 interface ProfilePageData {
   id: string;
@@ -141,6 +142,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
         </div>
         <VotePanel profileSlug={profile.slug} />
       </section>
+
+      {/* Cluster Disorder Voting */}
+      <DisorderVotePanel profileSlug={profile.slug} />
 
       {/* Related Characters */}
       {related.length > 0 && (

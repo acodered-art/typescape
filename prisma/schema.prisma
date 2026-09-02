@@ -29,9 +29,10 @@ model User {
   sessions       Session[]
   profiles       Profile[]           @relation("ProfileCreator")
   typings        ProfileTyping[]
-  votes          Vote[]
-  comments       Comment[]
-  commentVotes   CommentVote[]
+    disorderVotes  DisorderVote[]
+    votes          Vote[]
+    comments       Comment[]
+    commentVotes   CommentVote[]
   flags          ModerationItem[]    @relation("FlaggedBy")
   reviewedItems  ModerationItem[]    @relation("ReviewedBy")
   reputationEvents  ReputationEvent[]  @relation("UserReputation")
@@ -149,6 +150,7 @@ model Profile {
   typings  ProfileTyping[]
   comments Comment[]
   collectionItems CollectionItem[]
+  disorderVotes DisorderVote[]
 
   @@index([slug])
   @@index([categoryId])
@@ -456,4 +458,54 @@ model UserChallengeCompletion {
 
   @@unique([userId, challengeId])
   @@map("user_challenge_completions")
+}
+
+// ─── Cluster Disorder Voting ──────────────────────────────────
+
+model Disorder {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  slug        String   @unique
+  cluster     String   // "A", "B", "C", or "none"
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  comorbiditiesFrom DisorderComorbidity[] @relation("ComorbidityFrom")
+  comorbiditiesTo   DisorderComorbidity[] @relation("ComorbidityTo")
+  votes             DisorderVote[]
+
+  @@map("disorders")
+}
+
+model DisorderComorbidity {
+  id          String   @id @default(uuid()) @db.Uuid
+  disorderAId String   @map("disorder_a_id") @db.Uuid
+  disorderBId String   @map("disorder_b_id") @db.Uuid
+  strength    Float    @default(0.5) // 0-1 how commonly they co-occur
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  disorderA Disorder @relation("ComorbidityFrom", fields: [disorderAId], references: [id], onDelete: Cascade)
+  disorderB Disorder @relation("ComorbidityTo", fields: [disorderBId], references: [id], onDelete: Cascade)
+
+  @@unique([disorderAId, disorderBId])
+  @@map("disorder_comorbidities")
+}
+
+model DisorderVote {
+  id         String   @id @default(uuid()) @db.Uuid
+  profileId  String   @map("profile_id") @db.Uuid
+  disorderId String   @map("disorder_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  profile  Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  disorder Disorder @relation(fields: [disorderId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, userId]) // one vote per user per character
+  @@index([profileId])
+  @@index([disorderId])
+  @@map("disorder_votes")
 }
