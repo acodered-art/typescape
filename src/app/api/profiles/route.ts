@@ -4,6 +4,12 @@ import { generateSlug } from "@/lib/utils";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const rl = rateLimit(`profiles-get:${ip}`, 60, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";
   const category = searchParams.get("category");
@@ -13,8 +19,10 @@ export async function GET(req: Request) {
   const typesParam = searchParams.get("types");
   const types = typesParam ? typesParam.split(",").filter(Boolean) : [];
   const sort = searchParams.get("sort") || "views";
-  const limit = Math.min(Number(searchParams.get("limit")) || 20, 50);
-  const offset = Number(searchParams.get("offset")) || 0;
+  const rawLimit = Number(searchParams.get("limit")) || 20;
+  const rawOffset = Number(searchParams.get("offset")) || 0;
+  const limit = Math.min(Math.max(Math.floor(rawLimit), 1), 50);
+  const offset = Math.max(Math.floor(rawOffset), 0);
 
   const where: Record<string, unknown> = {};
 
