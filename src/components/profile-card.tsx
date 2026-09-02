@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TypingBadge } from "@/components/typing-badge";
+import { AddToCollectionInline } from "@/components/add-to-collection";
 
 interface ProfileCardProps {
   name: string;
@@ -12,11 +13,8 @@ interface ProfileCardProps {
 
 export function ProfileCard({ name, slug, imageUrl, description, category, typings }: ProfileCardProps) {
   return (
-    <Link
-      href={`/profiles/${slug}`}
-      className="block p-4 rounded-lg border border-[#1a2234] bg-[#0e1420] hover:border-[#2a3a4a] hover:bg-[#141c2b] transition-all group"
-    >
-      <div className="flex gap-3">
+    <div className="block p-4 rounded-lg border border-[#1a2234] bg-[#0e1420] hover:border-[#2a3a4a] hover:bg-[#141c2b] transition-all group">
+      <Link href={`/profiles/${slug}`} className="flex gap-3">
         {imageUrl && (
           <div className="w-14 h-14 rounded-md overflow-hidden shrink-0 bg-[#1a2234]">
             <img src={imageUrl} alt={name} className="w-full h-full object-cover" loading="lazy" />
@@ -46,7 +44,10 @@ export function ProfileCard({ name, slug, imageUrl, description, category, typin
             </div>
           )}
         </div>
+      </Link>
+      <div className="mt-2 flex justify-end">
+        <AddToCollectionInline profileSlug={slug} />
       </div>
-    </Link>
+    </div>
   );
 }

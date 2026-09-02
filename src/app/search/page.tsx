@@ -152,6 +152,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <div className="text-center py-12 text-[#4a5a70]">
             <p className="text-lg">No profiles found.</p>
             <p className="text-sm mt-1">Try different filters or be the first to create one.</p>
+            <Link
+              href={`/create${q ? `?name=${encodeURIComponent(q)}` : ""}`}
+              className="inline-block mt-4 px-4 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 transition-colors"
+            >
+              {q ? `Add "${q}"` : "Add a Profile"}
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">

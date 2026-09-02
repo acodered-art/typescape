@@ -2,11 +2,12 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export function CreateProfileForm() {
+export function CreateProfileForm({ initialName }: { initialName?: string }) {
   const router = useRouter();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName || "");
   const [description, setDescription] = useState("");
   const [bio, setBio] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [categories, setCategories] = useState<
     { id: string; name: string; slug: string; children: { id: string; name: string }[] }[]
@@ -14,8 +15,8 @@ export function CreateProfileForm() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch categories on mount
   useEffect(() => {
     fetch("/api/categories")
       .then((r) => r.json())
@@ -25,6 +26,18 @@ export function CreateProfileForm() {
       })
       .catch(() => setFetching(false));
   }, []);
+
+  // Flatten categories for search
+  const flatCategories = categories.flatMap((cat) =>
+    (cat.children || []).map((child) => ({
+      id: child.id,
+      label: `${cat.name} → ${child.name}`,
+    }))
+  );
+
+  const filtered = searchTerm
+    ? flatCategories.filter((c) => c.label.toLowerCase().includes(searchTerm.toLowerCase()))
+    : flatCategories;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +53,7 @@ export function CreateProfileForm() {
           name: name.trim(),
           description: description.trim() || undefined,
           bio: bio.trim() || undefined,
+          imageUrl: imageUrl.trim() || undefined,
           categoryId: categoryId || undefined,
         }),
       });
@@ -66,50 +80,34 @@ export function CreateProfileForm() {
         </div>
       )}
 
-      <div>
-        <label className="block text-xs text-[#7888a0] uppercase tracking-wider mb-1">
-          Name <span className="text-[#ff6b6b]">*</span>
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., Lelouch vi Britannia"
-          required
-          className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs text-[#7888a0] uppercase tracking-wider mb-1">
+            Name <span className="text-[#ff6b6b]">*</span>
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g., Lelouch vi Britannia"
+            required
+            className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-[#7888a0] uppercase tracking-wider mb-1">Image URL</label>
+          <input
+            type="url"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40"
+          />
+        </div>
       </div>
 
       <div>
-        <label className="block text-xs text-[#7888a0] uppercase tracking-wider mb-1">
-          Category
-        </label>
-        <select
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] focus:outline-none focus:border-[#64ffda]/40"
-        >
-          <option value="">Uncategorized</option>
-          {fetching ? (
-            <option disabled>Loading...</option>
-          ) : (
-            categories.map((cat) => (
-              <optgroup key={cat.id} label={cat.name}>
-                {cat.children.map((child) => (
-                  <option key={child.id} value={child.id}>
-                    {cat.name} → {child.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))
-          )}
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-xs text-[#7888a0] uppercase tracking-wider mb-1">
-          Short Description
-        </label>
+        <label className="block text-xs text-[#7888a0] uppercase tracking-wider mb-1">Short Description</label>
         <input
           type="text"
           value={description}
@@ -120,9 +118,41 @@ export function CreateProfileForm() {
       </div>
 
       <div>
-        <label className="block text-xs text-[#7888a0] uppercase tracking-wider mb-1">
-          Biography
-        </label>
+        <label className="block text-xs text-[#7888a0] uppercase tracking-wider mb-1">Category</label>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search categories..."
+          className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40 mb-2"
+        />
+        {fetching ? (
+          <p className="text-xs text-[#4a5a70]">Loading categories...</p>
+        ) : (
+          <div className="max-h-40 overflow-y-auto space-y-0.5 border border-[#1a2234] rounded p-1">
+            <button
+              type="button"
+              onClick={() => { setCategoryId(""); setSearchTerm(""); }}
+              className={`w-full text-left px-2 py-1 text-xs rounded ${!categoryId ? "bg-[#64ffda]/10 text-[#64ffda]" : "text-[#7888a0] hover:text-[#c8d0dc]"}`}
+            >
+              Uncategorized
+            </button>
+            {filtered.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => { setCategoryId(c.id); setSearchTerm(c.label.split(" → ")[1] || ""); }}
+                className={`w-full text-left px-2 py-1 text-xs rounded ${categoryId === c.id ? "bg-[#64ffda]/10 text-[#64ffda]" : "text-[#7888a0] hover:text-[#c8d0dc]"}`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-xs text-[#7888a0] uppercase tracking-wider mb-1">Biography</label>
         <textarea
           value={bio}
           onChange={(e) => setBio(e.target.value)}

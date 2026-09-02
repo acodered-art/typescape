@@ -21,6 +21,7 @@ model User {
   bio           String?
   reputation    Int       @default(0)
   role          String    @default("user") // user, moderator, admin
+  ownType       String?   @map("own_type")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 

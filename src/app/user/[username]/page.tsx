@@ -2,11 +2,13 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { TypingBadge } from "@/components/typing-badge";
 import { FollowButton } from "@/components/follow-button";
+import { SetOwnType } from "@/components/set-own-type";
 
 interface UserData {
   username: string;
   avatarUrl: string | null;
   bio: string | null;
+  ownType: string | null;
   reputation: number;
   role: string;
   createdAt: string;
@@ -92,9 +94,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             )}
           </h1>
           {user.bio && <p className="text-sm text-[#7888a0] mt-1">{user.bio}</p>}
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <p className="text-xs text-[#4a5a70]">Joined {timeAgo(user.createdAt)}</p>
             <FollowButton username={user.username} />
+            <SetOwnType username={user.username} currentType={user.ownType || undefined} />
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
+import { FloatingAddButton } from "@/components/floating-add-button";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${geistMono.variable} font-mono bg-[#0a0e17] text-[#c8d0dc] min-h-screen`}>
         <Header />
         <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
+        <FloatingAddButton />
       </body>
     </html>
   );

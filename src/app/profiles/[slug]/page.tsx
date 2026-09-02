@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { VotePanel } from "@/components/vote-panel";
 import { CommentSection } from "@/components/comment-section";
-import { AddToCollectionButton } from "@/components/add-to-collection";
+import { AddToCollectionInline } from "@/components/add-to-collection";
 import { UploadImageButton } from "@/components/upload-image";
 import { ProfileCard } from "@/components/profile-card";
 
@@ -96,7 +96,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
             <span>{profile.typings.length} typings</span>
           </div>
           <div className="mt-2">
-            <AddToCollectionButton profileSlug={profile.slug} />
+            <AddToCollectionInline profileSlug={profile.slug} />
           </div>
         </div>
       </div>
