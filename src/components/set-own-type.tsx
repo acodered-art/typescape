@@ -1,19 +1,26 @@
 "use client";
 import { useState } from "react";
 import { TYPING_SYSTEMS } from "@/lib/typing-systems";
+import { Btn } from "@/components/dossier";
+import { FormNote, Modal, SelectPaper } from "@/components/dossier/modal";
 
+const SYSTEMS = TYPING_SYSTEMS.filter((s) => s.types?.length);
+const shortName = (name: string) => name.replace(/\s*\(.*\)\s*$/, "").trim() || name;
+
+/** "Set my type": the reader's self-reported read, saved as system:type. Saving reloads the file so the stamp lands. */
 export function SetOwnType({ username, currentType }: { username: string; currentType?: string }) {
   const [open, setOpen] = useState(false);
-  const [system, setSystem] = useState("mbti");
+  const [system, setSystem] = useState(currentType?.split(":")[0] && SYSTEMS.some((s) => s.slug === currentType.split(":")[0]) ? currentType.split(":")[0] : "mbti");
   const [typeValue, setTypeValue] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(currentType);
+  const [note, setNote] = useState("");
 
-  const sys = TYPING_SYSTEMS.find((s) => s.slug === system);
+  const sys = SYSTEMS.find((s) => s.slug === system);
 
   const handleSave = async () => {
     if (!typeValue) return;
     setSaving(true);
+    setNote("");
     try {
       const res = await fetch("/api/me/type", {
         method: "PUT",
@@ -21,56 +28,51 @@ export function SetOwnType({ username, currentType }: { username: string; curren
         body: JSON.stringify({ system, typeValue }),
       });
       if (res.ok) {
-        setSaved(`${system}:${typeValue}`);
         setOpen(false);
+        window.location.reload();
+      } else {
+        setNote(res.status === 401 ? "Sign in to set your type." : "That did not save.");
       }
-    } catch {} finally {
+    } catch {
+      setNote("Network error");
+    } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="flex items-center gap-2">
-      {saved && (
-        <span className="text-xs px-2 py-0.5 rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20">
-          {saved.split(":")[1] || saved}
-        </span>
-      )}
-      <button
-        onClick={() => setOpen(true)}
-        className="text-xs text-[#7888a0] hover:text-[#64ffda] transition-colors"
-      >
-        {saved ? "Change" : "Set your type"}
-      </button>
-
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setOpen(false)}>
-          <div className="w-80 p-4 rounded-lg border border-[#1a2234] bg-[#0e1420]" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-semibold text-[#e8ecf4] mb-3">Set Your Personality Type</h3>
-            <div className="space-y-2">
-              <select value={system} onChange={(e) => setSystem(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc]">
-                {TYPING_SYSTEMS.filter(s => s.types?.length).map(s => (
-                  <option key={s.slug} value={s.slug}>{s.name}</option>
-                ))}
-              </select>
-              <select value={typeValue} onChange={(e) => setTypeValue(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc]">
-                <option value="">Select type...</option>
-                {sys?.types?.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-              <div className="flex gap-2 pt-2">
-                <button onClick={() => setOpen(false)} className="flex-1 px-3 py-1.5 text-xs rounded border border-[#1a2234] text-[#7888a0] hover:bg-[#1a2234]">Cancel</button>
-                <button onClick={handleSave} disabled={saving || !typeValue} className="flex-1 px-3 py-1.5 text-xs rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 disabled:opacity-30">
-                  {saving ? "..." : "Save"}
-                </button>
-              </div>
-            </div>
+    <>
+      <Btn onClick={() => setOpen(true)} title={`Self-reported type for ${username}`}>
+        {currentType ? "Change my type" : "Set my type"}
+      </Btn>
+      <Modal open={open} onClose={() => setOpen(false)} title="My type">
+        <div className="flex flex-col gap-4">
+          <label className="flex flex-col gap-1">
+            <span className="lab">System</span>
+            <SelectPaper value={system} onChange={(e) => { setSystem(e.target.value); setTypeValue(""); }}>
+              {SYSTEMS.map((s) => (
+                <option key={s.slug} value={s.slug}>{shortName(s.name)}</option>
+              ))}
+            </SelectPaper>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="lab">Read</span>
+            <SelectPaper value={typeValue} onChange={(e) => setTypeValue(e.target.value)}>
+              <option value="">Choose a type</option>
+              {sys?.types?.map((t) => (
+                <option key={t.value} value={t.value}>{t.label.replace(" — ", ", ")}</option>
+              ))}
+            </SelectPaper>
+          </label>
+          {note && <FormNote error>{note}</FormNote>}
+          <div className="flex justify-end gap-3 pt-2">
+            <Btn onClick={() => setOpen(false)}>Cancel</Btn>
+            <Btn variant="primary" onClick={handleSave} disabled={saving || !typeValue}>
+              {saving ? "Saving" : "Stamp it"}
+            </Btn>
           </div>
         </div>
-      )}
-    </div>
+      </Modal>
+    </>
   );
 }
