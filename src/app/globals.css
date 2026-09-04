@@ -1,33 +1,124 @@
 @import "tailwindcss";
 
-:root {
-  --bg-primary: #0a0e17;
-  --bg-secondary: #0e1420;
-  --bg-tertiary: #141c2b;
-  --border-color: #1a2234;
-  --text-primary: #e8ecf4;
-  --text-secondary: #c8d0dc;
-  --text-tertiary: #7888a0;
-  --accent: #64ffda;
-  --accent-dim: #4ad0b0;
-  font-family: "Geist Mono", monospace;
+/* ============================================================
+   TypeScape · "Dossier" theme
+   A case file on a dark desk: white sheet, folder tabs, blue ink stamp.
+   Palette is LOCKED to seven values. Type roles: printed (labels, headings,
+   names) = Big Shoulders Display; typed (codes, values, counts, small
+   buttons) = Courier Prime; running text = Public Sans.
+   Source: design handoff typescape-dossier-frontend.html (drafts 3-7).
+   ============================================================ */
+@theme {
+  --color-*: initial;
+  --color-ink: #01050b;      /* desk, primary text on paper */
+  --color-navy: #0e4a80;     /* surfaces on the desk, inactive tabs, secondary text on paper */
+  --color-blue: #158fd4;     /* THE accent: active tab, folder edge, stamp, primary bars, links, CTAs */
+  --color-steel: #9daecc;    /* muted: tertiary bars, silhouettes, hairlines */
+  --color-paper: #ffffff;    /* the sheet, primary text on the desk */
+  --color-paper-2: #e4ebf4;  /* row fill on the sheet, photo box */
+  --color-steel-2: #4f6f94;  /* tertiary text on paper */
+  --color-black: #01050b;    /* alias so bg-black/50 backdrops keep working */
+  --color-white: #ffffff;
+
+  --font-*: initial;
+  --font-display: var(--font-big-shoulders), Impact, "Arial Narrow", sans-serif;
+  --font-typed: var(--font-courier-prime), "Courier New", monospace;
+  --font-body: var(--font-public-sans), "Helvetica Neue", Arial, sans-serif;
 }
 
-::selection {
-  background: rgba(100, 255, 218, 0.2);
-  color: #e8ecf4;
+@layer base {
+  html { color-scheme: dark; background: var(--color-ink); }
+  body { font-family: var(--font-body); background: var(--color-ink); color: var(--color-paper); }
+  /* Big Shoulders is a variable family with an optical-size axis; the design uses the Display cut at every size. */
+  .font-display, .tab, .lab, .sec-h, .btn, .stamp { font-variation-settings: "opsz" 72; }
+  a { color: var(--color-blue); }
+  a:hover { color: var(--color-paper); }
+  .sheet a:hover, .on-paper a:hover { color: var(--color-navy); }
+  ::selection { background: rgba(21, 143, 212, 0.35); color: #ffffff; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #01050b; }
+  ::-webkit-scrollbar-thumb { background: #0e4a80; }
+  ::-webkit-scrollbar-thumb:hover { background: #158fd4; }
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #0a0e17;
-}
-::-webkit-scrollbar-thumb {
-  background: #1a2234;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #2a3a4a;
+@layer components {
+  /* ---- folder tab: display/700 18px, slanted sides ---- */
+  .tab { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: 0.14em; text-transform: uppercase; line-height: 1; padding: 10px 20px 8px; background: var(--color-navy); color: rgba(255, 255, 255, 0.8); clip-path: polygon(0 100%, 8px 0, calc(100% - 8px) 0, 100% 100%); white-space: nowrap; }
+  .tab:hover { color: var(--color-paper); }
+  .tab-active, .tab-active:hover { background: var(--color-blue); color: var(--color-ink); }
+  .tab-sm { font-size: 15px; letter-spacing: 0.12em; padding: 9px 14px 7px; clip-path: polygon(0 100%, 6px 0, calc(100% - 6px) 0, 100% 100%); }
+
+  /* ---- the sheet, on a stack of two loose sheets ---- */
+  .sheet-wrap { position: relative; }
+  .sheet-wrap::before, .sheet-wrap::after { content: ""; position: absolute; border: 1px solid var(--color-steel); }
+  .sheet-wrap::before { left: 12px; right: -12px; top: 10px; bottom: -12px; background: var(--color-paper-2); transform: rotate(0.8deg); }
+  .sheet-wrap::after { left: 5px; right: -6px; top: 4px; bottom: -6px; background: var(--color-paper); transform: rotate(-0.45deg); }
+  .sheet { position: relative; background: var(--color-paper); color: var(--color-ink); border-top: 4px solid var(--color-blue); border-radius: 0 4px 4px 4px; box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55); padding: 32px 36px 28px; }
+  .sheet-punched::before, .sheet-punched::after { content: ""; position: absolute; left: 12px; width: 12px; height: 12px; border-radius: 50%; background: var(--color-ink); }
+  .sheet-punched::before { top: 34%; }
+  .sheet-punched::after { top: 64%; }
+  @media (max-width: 640px) {
+    .sheet { padding: 20px 16px 20px 22px; }
+    .sheet-punched::before, .sheet-punched::after { left: 6px; width: 9px; height: 9px; }
+  }
+
+  /* ---- printed label, typed value on a rule, notes on ruled lines ---- */
+  .lab { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.1em; color: var(--color-navy); text-transform: uppercase; }
+  .ln { font-family: var(--font-typed); border-bottom: 1px solid var(--color-steel); padding-bottom: 3px; max-width: 400px; }
+  .ruled { font-family: var(--font-typed); line-height: 22px; background-image: repeating-linear-gradient(transparent 0 21px, var(--color-steel) 21px 22px); }
+
+  /* ---- section: 2px ink rule above, square + display heading ---- */
+  .sec { border-top: 2px solid var(--color-ink); padding-top: 16px; }
+  .sec-h { font-family: var(--font-display); font-weight: 800; font-size: 24px; letter-spacing: 0.12em; text-transform: uppercase; line-height: 1.1; }
+  .sq { display: inline-block; width: 10px; height: 10px; background: var(--color-blue); flex-shrink: 0; }
+
+  /* ---- code chips, ink-stamped tags ---- */
+  .chip { font-family: var(--font-typed); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 2px 6px; border: 2px solid var(--color-blue); color: var(--color-blue); white-space: nowrap; }
+  .chip-navy { border-color: var(--color-navy); color: var(--color-navy); }
+  .chip-paper { border-color: var(--color-navy); color: var(--color-paper); }
+  .ink { filter: url(#ink); }
+  .tag { font-family: var(--font-typed); font-weight: 700; font-size: 12px; letter-spacing: 0.12em; padding: 3px 6px; border: 2px solid var(--color-blue); color: var(--color-blue); text-align: center; filter: url(#ink); white-space: nowrap; }
+  .tag-off { font-family: var(--font-typed); font-weight: 700; font-size: 12px; letter-spacing: 0.12em; padding: 4px 8px; border: 1px dashed var(--color-steel); color: var(--color-steel-2); white-space: nowrap; }
+
+  /* ---- buttons ---- */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: 0.12em; text-transform: uppercase; line-height: 1; padding: 13px 20px; border: 1px solid var(--color-ink); color: var(--color-ink); background: transparent; cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: var(--color-ink); color: var(--color-paper); }
+  .btn-primary { font-weight: 800; padding: 13px 22px; background: var(--color-blue); border-color: var(--color-blue); color: var(--color-ink); }
+  .btn-primary:hover { background: var(--color-navy); border-color: var(--color-navy); color: var(--color-paper); }
+  .btn-desk { border-color: var(--color-blue); color: var(--color-blue); }
+  .btn-desk:hover { background: var(--color-blue); color: var(--color-ink); }
+  .btn-sm { font-family: var(--font-typed); font-weight: 700; font-size: 12px; letter-spacing: 0.1em; padding: 5px 8px; border: 1px solid var(--color-blue); color: var(--color-blue); }
+  .btn-sm:hover { background: var(--color-blue); color: var(--color-ink); }
+  .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.35; cursor: not-allowed; }
+
+  /* ---- the stamp: the one bold element and the one motion moment ---- */
+  .stamp { position: absolute; transform: rotate(-7deg); border: 4px double var(--color-blue); padding: 10px 22px 12px; color: var(--color-blue); opacity: 0.92; mix-blend-mode: multiply; filter: url(#ink); display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; animation: land 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) 0.3s both; }
+  @keyframes land {
+    0% { transform: rotate(-7deg) scale(1.4); opacity: 0; }
+    55% { transform: rotate(-7deg) scale(0.96); opacity: 0.92; }
+    100% { transform: rotate(-7deg) scale(1); opacity: 0.92; }
+  }
+  @media (prefers-reduced-motion: reduce) { .stamp { animation: none; } }
+
+  /* ---- rail rows (Cabinet, Systems): typed rows on navy ---- */
+  .rail-row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; background: var(--color-navy); font-family: var(--font-typed); font-size: 14px; color: var(--color-paper); }
+  .rail-row:hover { background: var(--color-blue); color: var(--color-ink); }
+  .rail-row-active, .rail-row-active:hover { background: var(--color-blue); color: var(--color-ink); font-weight: 700; }
+  .rail-row-off { background: transparent; border: 1px dashed var(--color-navy); color: rgba(255, 255, 255, 0.6); padding: 7px 12px; }
+
+  /* ---- fills and empty states ---- */
+  .row-fill { background: var(--color-paper-2); }
+  .dashed { border: 1px dashed var(--color-steel); }
+
+  /* ---- controls on paper and on the desk ---- */
+  .input-paper { font-family: var(--font-typed); font-size: 15px; color: var(--color-ink); background: var(--color-paper); border: 1px solid var(--color-steel); padding: 9px 12px; outline: none; width: 100%; }
+  .input-paper:focus { border-color: var(--color-blue); }
+  .input-paper::placeholder { color: var(--color-steel-2); }
+  .input-desk { font-family: var(--font-typed); font-size: 15px; color: var(--color-navy); background: var(--color-paper); border: 0; padding: 0 12px; height: 50px; outline: none; width: 100%; }
+  .input-desk::placeholder { color: var(--color-steel-2); }
+  .select-paper { font-family: var(--font-typed); font-size: 16px; color: var(--color-ink); background: var(--color-paper); border: 0; padding: 9px 12px; outline: none; width: 100%; appearance: none; }
+
+  /* ---- nav link ---- */
+  .nav-link { color: rgba(255, 255, 255, 0.65); }
+  .nav-link:hover, .nav-link-active { color: var(--color-paper); }
 }

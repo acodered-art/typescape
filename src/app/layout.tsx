@@ -1,12 +1,30 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
+import { Big_Shoulders, Courier_Prime, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
 import { FloatingAddButton } from "@/components/floating-add-button";
+import { InkFilter } from "@/components/dossier";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Printed face: labels, headings, names, the wordmark, the stamp.
+// Google now ships Big Shoulders as one variable family with an optical-size axis;
+// globals.css pins "opsz" 72 on display text so it renders as the old Display cut at every size.
+const display = Big_Shoulders({
+  variable: "--font-big-shoulders",
   subsets: ["latin"],
+  weight: "variable",
+  axes: ["opsz"],
+});
+// Typed face: codes, field values, counts, small buttons. It means "typed by a reader".
+const typed = Courier_Prime({
+  variable: "--font-courier-prime",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
+// Running text.
+const body = Public_Sans({
+  variable: "--font-public-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -21,10 +39,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${geistMono.variable} font-mono bg-[#0a0e17] text-[#c8d0dc] min-h-screen`}>
+    <html lang="en" className={`${display.variable} ${typed.variable} ${body.variable}`}>
+      <body className="min-h-screen bg-ink font-body text-paper">
+        <InkFilter />
         <Header />
-        <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
+        {/* The page is a 1100px desk: 40px padding either side of 1020px of content. */}
+        <main className="mx-auto w-full max-w-[1100px] px-4 pb-10 sm:px-10">{children}</main>
         <FloatingAddButton />
       </body>
     </html>

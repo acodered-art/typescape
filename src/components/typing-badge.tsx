@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { SYSTEM_COLORS } from "@/lib/typing-systems";
 
 interface TypingBadgeProps {
   systemSlug: string;
@@ -7,21 +6,28 @@ interface TypingBadgeProps {
   typeValue: string;
   confidence: number;
   voteCount?: number;
+  /** blue = the leading or certified read, navy = secondary or an individual reader's read */
+  tone?: "blue" | "navy";
+  /** print the system name after the code (typed, small) */
+  showSystem?: boolean;
+  /** print the agreement percentage after the code */
+  showConfidence?: boolean;
 }
 
-export function TypingBadge({ systemSlug, systemName, typeValue, confidence, voteCount }: TypingBadgeProps) {
-  const colors = SYSTEM_COLORS[systemSlug] || "bg-[#1a2234] text-[#7888a0] border-[#2a3a4a]";
-
+/**
+ * A type code as a chip, linking to the search for that read.
+ * The Dossier shows the code alone (INTJ, 5w6, LSI); the system rides in the title and, where a list mixes systems, after the code.
+ */
+export function TypingBadge({ systemSlug, systemName, typeValue, confidence, tone = "blue", showSystem = false, showConfidence = false }: TypingBadgeProps) {
   return (
     <Link
-      href={`/search?type=${typeValue}&system=${systemSlug}`}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-medium ${colors} hover:opacity-80 transition-opacity`}
+      href={`/search?type=${encodeURIComponent(typeValue)}&system=${systemSlug}`}
+      className={`chip inline-flex items-baseline gap-1.5 ${tone === "navy" ? "chip-navy" : ""}`}
+      title={`${typeValue}, ${systemName}`}
     >
-      <span className="uppercase">{systemName}</span>
-      <span className="font-bold">{typeValue}</span>
-      {confidence > 0 && (
-        <span className="opacity-60">{Math.round(confidence * 100)}%</span>
-      )}
+      <span>{typeValue}</span>
+      {showSystem && <span className="text-[11px] font-normal uppercase tracking-[0.1em] text-steel-2">{systemName}</span>}
+      {showConfidence && confidence > 0 && <span className="font-normal text-steel-2">{Math.round(confidence * 100)}%</span>}
     </Link>
   );
 }
