@@ -201,8 +201,8 @@ export function RailRow({ href, active = false, off = false, aside, children }: 
   const cls = `rail-row ${active ? "rail-row-active" : ""} ${off ? "rail-row-off" : ""}`;
   const inner = (
     <>
-      <span className="truncate">{children}</span>
-      {aside !== undefined && <span className={active ? "" : "text-paper/60"}>{aside}</span>}
+      <span className="min-w-0 truncate">{children}</span>
+      {aside !== undefined && <span className={`shrink-0 whitespace-nowrap ${active ? "" : "text-paper/60"}`}>{aside}</span>}
     </>
   );
   if (href) return <Link href={href} className={cls}>{inner}</Link>;
