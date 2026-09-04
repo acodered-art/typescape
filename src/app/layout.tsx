@@ -9,6 +9,8 @@ import { InkFilter } from "@/components/dossier";
 // Google now ships Big Shoulders as one variable family with an optical-size axis;
 // globals.css pins "opsz" 72 on display text so it renders as the old Display cut at every size.
 const display = Big_Shoulders({
+  // The variable family has no fallback metrics in next/font's table; without this flag every render logs a warning.
+  adjustFontFallback: false,
   variable: "--font-big-shoulders",
   subsets: ["latin"],
   weight: "variable",

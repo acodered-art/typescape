@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { TYPING_SYSTEMS } from "@/lib/typing-systems";
 
 /* ============================================================
    Dossier primitives: the case-file vocabulary every screen uses.
@@ -219,4 +220,44 @@ export function EmptySlot({ label, className = "", children }: { label?: string;
 /** Typed small text in navy (asides, sources, captions on paper). */
 export function Typed({ className = "", children }: { className?: string; children: ReactNode }) {
   return <span className={`font-typed text-[13px] text-navy ${className}`}>{children}</span>;
+}
+
+/**
+ * Segmented agreement bar: the leading read in blue, the runner-up in navy, everything else in steel.
+ * Shares are percentages (0-100). Labels print inside the segments when the bar is tall enough
+ * (22px rows on Home); the 10px bars on a profile's finding rows pass none.
+ */
+export function SegBar({ lead, runner = 0, leadLabel, runnerLabel, height = 22, className = "" }: {
+  lead: number; runner?: number; leadLabel?: string; runnerLabel?: string; height?: number; className?: string;
+}) {
+  const rest = Math.max(0, 100 - lead - runner);
+  const label = leadLabel || runnerLabel ? `${leadLabel ?? ""}${runnerLabel ? `, ${runnerLabel}` : ""}` : undefined;
+  return (
+    <div className={`flex gap-[3px] overflow-hidden ${className}`} style={{ height }} role="img" aria-label={label}>
+      <div className="flex items-center overflow-hidden whitespace-nowrap bg-blue px-2 font-typed text-[13px] font-bold text-ink" style={{ width: `${lead}%` }}>{leadLabel}</div>
+      {runner > 0 && <div className="flex items-center justify-end overflow-hidden whitespace-nowrap bg-navy px-2 font-typed text-[13px] font-bold text-paper" style={{ width: `${runner}%` }}>{runnerLabel}</div>}
+      {rest > 0 && <div className="bg-steel" style={{ width: `${rest}%` }} />}
+    </div>
+  );
+}
+
+/** Navy card on the desk (cabinet drawers, feed cards): 40x4 blue bar, display 28 title, typed 12px text. A link when href is given. */
+export function NavyCard({ href, title, className = "", children }: { href?: string; title: ReactNode; className?: string; children?: ReactNode }) {
+  const cls = `group flex min-h-[130px] flex-col gap-[10px] bg-navy px-4 pb-[14px] pt-4 text-paper ${href ? "hover:bg-blue hover:text-ink" : ""} ${className}`;
+  const inner = (
+    <>
+      <span className="block h-1 w-10 bg-blue group-hover:bg-ink" aria-hidden="true" />
+      <div className="font-display text-[28px] font-extrabold uppercase leading-[0.95]">{title}</div>
+      {children && <div className="font-typed text-[12px] leading-[1.6] text-paper/65 group-hover:text-ink/70">{children}</div>}
+    </>
+  );
+  if (href) return <Link href={href} className={cls}>{inner}</Link>;
+  return <div className={cls}>{inner}</div>;
+}
+
+const SYSTEM_RANK = new Map<string, number>(TYPING_SYSTEMS.map((s, i) => [s.slug, i]));
+
+/** Order a list of reads the way the site orders its systems (MBTI first, then Enneagram, and so on). Unknown systems keep their place at the end. */
+export function bySystemOrder<T extends { typingSystem: { slug: string } }>(list: T[]): T[] {
+  return [...list].sort((a, b) => (SYSTEM_RANK.get(a.typingSystem.slug) ?? 99) - (SYSTEM_RANK.get(b.typingSystem.slug) ?? 99));
 }

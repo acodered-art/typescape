@@ -1,6 +1,6 @@
 import { TypingBadge } from "@/components/typing-badge";
 import { AddToCollectionInline } from "@/components/add-to-collection";
-import { FileCard } from "@/components/dossier";
+import { FileCard, bySystemOrder } from "@/components/dossier";
 
 interface ProfileCardProps {
   name: string;
@@ -15,7 +15,7 @@ interface ProfileCardProps {
 
 /** A character as a file card: series header, portrait, name, the leading reads as chips. */
 export function ProfileCard({ name, slug, imageUrl, category, typings, variant = "sheet" }: ProfileCardProps) {
-  const shown = typings.slice(0, 3);
+  const shown = bySystemOrder(typings).slice(0, 3);
   return (
     <FileCard
       href={`/profiles/${slug}`}
