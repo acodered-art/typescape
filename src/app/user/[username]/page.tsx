@@ -2,10 +2,11 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { ACHIEVEMENTS } from "@/lib/achievements";
-import { calcVoteWeight } from "@/lib/utils";
+import { calcConsensus, calcVoteWeight } from "@/lib/utils";
+import { prisma } from "@/lib/db";
 import { FollowButton } from "@/components/follow-button";
 import { SetOwnType } from "@/components/set-own-type";
-import { Btn, CodeChip, EmptySlot, Field, FieldGrid, FolderTab, InkTag, OffTag, PaperClip, Portrait, Section, SectionHead, Sheet, Stamp, TabStrip, Typed } from "@/components/dossier";
+import { Btn, CodeChip, EmptySlot, Field, FieldGrid, FolderTab, InkTag, OffTag, PaperClip, Portrait, Section, SectionHead, Sheet, Stamp, TabStrip, Typed, leadingRead } from "@/components/dossier";
 
 interface UserData {
   username: string;
@@ -13,7 +14,6 @@ interface UserData {
   bio: string | null;
   ownType: string | null;
   reputation: number;
-  role: string;
   createdAt: string;
   _count: { profiles: number; typings: number; votes: number; comments: number; collections: number };
   typings: {
@@ -54,6 +54,36 @@ async function getUser(username: string): Promise<{ user: UserData | null; achie
     return { user, achievements };
   } catch {
     return { user: null, achievements: [] };
+  }
+}
+
+type ReadRow = UserData["typings"][number];
+
+/** The reader's standing on the site. The user API does not send the role, so it is read straight from the database. */
+async function readerRole(username: string): Promise<string> {
+  try {
+    return (await prisma.user.findUnique({ where: { username }, select: { role: true } }))?.role ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** Each read set against its file's consensus, in the reader's row order: "With the consensus", "Against the consensus, INTJ 64%" (the leading read and its agreement), or "No consensus yet" while no read of that system on that file carries a vote. The user API carries no votes, so the files are read from the database; an unreachable database leaves the column empty. */
+async function consensusLines(reads: ReadRow[]): Promise<(string | null)[]> {
+  if (reads.length === 0) return [];
+  try {
+    const rows = await prisma.profileTyping.findMany({
+      where: { profile: { slug: { in: [...new Set(reads.map((r) => r.profile.slug))] } } },
+      select: { typeValue: true, profile: { select: { slug: true } }, typingSystem: { select: { slug: true } }, votes: { select: { voteValue: true, weight: true } } },
+    });
+    return reads.map((r) => {
+      const lead = leadingRead(rows.filter((x) => x.profile.slug === r.profile.slug && x.typingSystem.slug === r.typingSystem.slug));
+      if (!lead) return "No consensus yet";
+      if (lead.typeValue === r.typeValue) return "With the consensus";
+      return `Against the consensus, ${lead.typeValue} ${calcConsensus(lead.votes, 0).percentage}%`;
+    });
+  } catch {
+    return reads.map(() => null);
   }
 }
 
@@ -112,9 +142,11 @@ function nextAchievement(earned: Set<string>, counts: UserData["_count"]): strin
 
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
-  const [{ user, achievements }, me] = await Promise.all([getUser(username), readerHandle()]);
+  const [{ user, achievements }, me, role] = await Promise.all([getUser(username), readerHandle(), readerRole(username)]);
 
   if (!user) notFound();
+
+  const consensus = await consensusLines(user.typings);
 
   const isMe = me !== "" && me === user.username;
   const earned = new Set(achievements.map((a) => a.achievement.slug));
@@ -154,7 +186,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               <div className="lab">Reader</div>
               <h1 className="flex flex-wrap items-baseline gap-3 font-display text-[40px] font-extrabold uppercase leading-[0.95] tracking-[0.01em] md:text-[64px]">
                 {user.username}
-                {user.role && user.role !== "user" && <InkTag className="text-[12px]">{user.role}</InkTag>}
+                {role && role !== "user" && <InkTag className="text-[12px]">{role}</InkTag>}
               </h1>
               <Field label="Since">{since}</Field>
               <Field label="Standing">
@@ -206,7 +238,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                       <CodeChip tone="navy" href={`/search?type=${encodeURIComponent(t.typeValue)}&system=${t.typingSystem.slug}`}>{t.typeValue}</CodeChip>
                       <Typed>{t.typingSystem.name}</Typed>
                     </div>
-                    <span className="hidden md:block" />
+                    {consensus[i] ? <Typed>{consensus[i]}</Typed> : <span className="hidden md:block" />}
                     <span className="font-typed text-[12px] text-steel-2 md:text-right">{timeAgo(t.createdAt)}</span>
                   </div>
                 ))}

@@ -263,3 +263,11 @@ const SYSTEM_RANK = new Map<string, number>(TYPING_SYSTEMS.map((s, i) => [s.slug
 export function bySystemOrder<T extends { typingSystem: { slug: string } }>(list: T[]): T[] {
   return [...list].sort((a, b) => (SYSTEM_RANK.get(a.typingSystem.slug) ?? 99) - (SYSTEM_RANK.get(b.typingSystem.slug) ?? 99));
 }
+
+/** The consensus read among the reads of ONE system on one file: of those carrying any vote, the one most readers agreed with. Null while no read of that system has a vote. The profile stamp and the reader file's consensus column both use this rule. */
+export function leadingRead<T extends { votes: { voteValue: number }[] }>(list: T[]): T | null {
+  const voted = list.filter((t) => t.votes.length > 0);
+  if (voted.length === 0) return null;
+  const agreed = (t: T) => t.votes.filter((v) => v.voteValue > 0).length;
+  return [...voted].sort((a, b) => agreed(b) - agreed(a))[0];
+}

@@ -9,7 +9,7 @@ import { UploadImageButton } from "@/components/upload-image";
 import { AddTypingForm } from "@/components/add-typing";
 import { ProfileCard } from "@/components/profile-card";
 import { TraitVotePanel } from "@/components/trait-vote-panel";
-import { Field, FieldGrid, PaperClip, Portrait, Section, SectionHead, Stamp, Typed, bySystemOrder } from "@/components/dossier";
+import { Field, FieldGrid, PaperClip, Portrait, Section, SectionHead, Stamp, Typed, bySystemOrder, leadingRead } from "@/components/dossier";
 import { ProfileTabs, TabLink, type ProfileTab } from "./profile-tabs";
 
 const PROFILE_TABS: ProfileTab[] = ["subject", "findings", "evidence", "discussion"];
@@ -77,16 +77,14 @@ function sourceLine(category: { name: string; slug: string } | null, tree: Categ
 }
 
 const count = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
-const upvotes = (t: TypingRead) => t.votes.filter((v) => v.voteValue > 0).length;
 
 /** The consensus stamp: the leading read of the first system (in the site's order) that has any votes. */
 function pickStamp(typings: TypingRead[]): { code: string; line: string } | null {
   const seen = new Set<string>();
   for (const t of typings) seen.add(t.typingSystem.slug);
   for (const slug of seen) {
-    const list = typings.filter((t) => t.typingSystem.slug === slug && t.votes.length > 0);
-    if (list.length === 0) continue;
-    const lead = [...list].sort((a, b) => upvotes(b) - upvotes(a))[0];
+    const lead = leadingRead(typings.filter((t) => t.typingSystem.slug === slug));
+    if (!lead) continue;
     const pct = calcConsensus(lead.votes, 0).percentage;
     return { code: lead.typeValue, line: `${count(lead.votes.length, "reader").toUpperCase()}, ${pct}% AGREE` };
   }
