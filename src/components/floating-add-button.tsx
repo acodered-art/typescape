@@ -1,26 +1,14 @@
 "use client";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Btn } from "@/components/dossier";
+import { useReaderHandle } from "@/components/dossier/reader";
 
+/** The standing "+ New file" button, bottom right, for signed-in readers only. */
 export function FloatingAddButton() {
-  const [user, setUser] = useState<{ username: string } | null>(null);
-
-  useEffect(() => {
-    const m = document.cookie.match(/(?:^|;\s*)user=([^;]+)/);
-    if (m) {
-      try { setUser(JSON.parse(decodeURIComponent(m[1]))); } catch {}
-    }
-  }, []);
-
-  if (!user) return null;
-
+  const me = useReaderHandle();
+  if (!me) return null;
   return (
-    <Link
-      href="/create"
-      className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-[#64ffda] text-[#0a0e17] flex items-center justify-center text-2xl font-bold shadow-lg hover:bg-[#4ad0b0] transition-colors"
-      title="Add a profile"
-    >
-      +
-    </Link>
+    <Btn href="/create" variant="primary" className="fixed bottom-6 right-6 z-40 shadow-[0_12px_28px_rgba(0,0,0,0.55)]" title="Open a new file">
+      + New file
+    </Btn>
   );
 }
