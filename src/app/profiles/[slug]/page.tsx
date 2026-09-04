@@ -1,13 +1,18 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { VotePanel } from "@/components/vote-panel";
+import { prisma } from "@/lib/db";
+import { calcConsensus } from "@/lib/utils";
+import { VotePanel, type TypingRead } from "@/components/vote-panel";
 import { CommentSection } from "@/components/comment-section";
+import { EvidencePanel } from "@/components/evidence-panel";
 import { AddToCollectionInline } from "@/components/add-to-collection";
 import { UploadImageButton } from "@/components/upload-image";
 import { AddTypingForm } from "@/components/add-typing";
 import { ProfileCard } from "@/components/profile-card";
-import { DisorderVotePanel } from "@/components/disorder-vote-panel";
 import { TraitVotePanel } from "@/components/trait-vote-panel";
+import { Field, FieldGrid, PaperClip, Portrait, Section, SectionHead, Stamp, Typed, bySystemOrder } from "@/components/dossier";
+import { ProfileTabs, TabLink, type ProfileTab } from "./profile-tabs";
+
+const PROFILE_TABS: ProfileTab[] = ["subject", "findings", "evidence", "discussion"];
 
 interface ProfilePageData {
   id: string;
@@ -21,19 +26,18 @@ interface ProfilePageData {
   viewCount: number;
   createdAt: string;
   category: { id: string; name: string; slug: string } | null;
-  typings: {
-    id: string;
-    typeValue: string;
+  typings: (TypingRead & {
     confidence: number;
     details: unknown;
     evidenceUrls: string[];
     isCommunity: boolean;
     typingSystem: { id: string; name: string; slug: string };
-    votes: { voteValue: number; weight: number }[];
-    creator: { username: string } | null;
-  }[];
+  })[];
   _count: { comments: number };
 }
+
+type RelatedProfile = { name: string; slug: string; imageUrl: string | null; description: string | null; category: { name: string; slug: string } | null; typings: { typingSystem: { name: string; slug: string }; typeValue: string; confidence: number }[] };
+type CategoryNode = { name: string; slug: string; children: { name: string; slug: string }[] };
 
 async function getProfile(slug: string): Promise<ProfilePageData | null> {
   const base = "http://localhost:3002";
@@ -46,128 +50,253 @@ async function getProfile(slug: string): Promise<ProfilePageData | null> {
   }
 }
 
-export default async function ProfilePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const profile = await getProfile(slug);
+async function getJson<T>(url: string, fallback: T): Promise<T> {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return fallback;
+    return (await res.json()) as T;
+  } catch {
+    return fallback;
+  }
+}
 
+/** How many exhibits are filed on this character's reads (the profile API carries no evidence count). */
+async function countEvidence(profileId: string): Promise<number | null> {
+  try {
+    return await prisma.evidence.count({ where: { profileTyping: { profileId } } });
+  } catch {
+    return null;
+  }
+}
+
+/** "Naruto, filed under Anime & Manga" from the category tree; a top-level category is just its name. */
+function sourceLine(category: { name: string; slug: string } | null, tree: CategoryNode[]): string | null {
+  if (!category) return null;
+  const parent = tree.find((c) => c.children.some((ch) => ch.slug === category.slug));
+  return parent ? `${category.name}, filed under ${parent.name}` : category.name;
+}
+
+const count = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
+const upvotes = (t: TypingRead) => t.votes.filter((v) => v.voteValue > 0).length;
+
+/** The consensus stamp: the leading read of the first system (in the site's order) that has any votes. */
+function pickStamp(typings: TypingRead[]): { code: string; line: string } | null {
+  const seen = new Set<string>();
+  for (const t of typings) seen.add(t.typingSystem.slug);
+  for (const slug of seen) {
+    const list = typings.filter((t) => t.typingSystem.slug === slug && t.votes.length > 0);
+    if (list.length === 0) continue;
+    const lead = [...list].sort((a, b) => upvotes(b) - upvotes(a))[0];
+    const pct = calcConsensus(lead.votes, 0).percentage;
+    return { code: lead.typeValue, line: `${count(lead.votes.length, "reader").toUpperCase()}, ${pct}% AGREE` };
+  }
+  return null;
+}
+
+export default async function ProfilePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { slug } = await params;
+  const sp = await searchParams;
+  const tabParam = typeof sp.tab === "string" ? sp.tab : sp.tab?.[0];
+  const initialTab: ProfileTab = PROFILE_TABS.includes(tabParam as ProfileTab) ? (tabParam as ProfileTab) : "subject";
+
+  const profile = await getProfile(slug);
   if (!profile) notFound();
 
-  // Fetch related profiles
   const base = "http://localhost:3002";
-  let related: { name: string; slug: string; imageUrl: string | null; description: string | null; category: { name: string; slug: string } | null; typings: { typingSystem: { name: string; slug: string }; typeValue: string; confidence: number }[] }[] = [];
-  try {
-    const relRes = await fetch(`${base}/api/profiles/${slug}/related`, { cache: "no-store" });
-    if (relRes.ok) related = await relRes.json();
-  } catch {}
+  const [related, tree, evidenceCount] = await Promise.all([
+    getJson<RelatedProfile[]>(`${base}/api/profiles/${slug}/related`, []),
+    getJson<CategoryNode[]>(`${base}/api/categories`, []),
+    countEvidence(profile.id),
+  ]);
 
-  // Group typings by system
-  const bySystem = new Map<string, typeof profile.typings>();
-  for (const t of profile.typings) {
-    const key = t.typingSystem.slug;
-    if (!bySystem.has(key)) bySystem.set(key, []);
-    bySystem.get(key)!.push(t);
-  }
+  const typings = bySystemOrder(profile.typings);
+  const systems = new Set(typings.map((t) => t.typingSystem.slug));
+  const stamp = pickStamp(typings);
+  const reads = typings.reduce((sum, t) => sum + t.votes.length, 0);
+  const source = sourceLine(profile.category, tree);
+  const links = profile.externalIds ? Object.entries(profile.externalIds) : [];
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex gap-4 items-start">
-        <div className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0 bg-[#1a2234]">
-          {profile.imageUrl ? (
-            <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-[#4a5a70]">
-              {profile.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <UploadImageButton profileSlug={profile.slug} currentImage={profile.imageUrl} />
-        </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-[#e8ecf4]">{profile.name}</h1>
-          </div>
-          {profile.category && (
-            <Link
-              href={`/categories/${profile.category.slug}`}
-              className="text-sm text-[#64ffda] hover:underline"
-            >
-              {profile.category.name}
-            </Link>
-          )}
-          {profile.description && (
-            <p className="text-sm text-[#7888a0] mt-1">{profile.description}</p>
-          )}
-          <div className="flex gap-3 text-xs text-[#4a5a70] mt-2">
-            <span>{profile.viewCount.toLocaleString()} views</span>
-            <span>{profile._count.comments} comments</span>
-            <span>{profile.typings.length} typings</span>
-          </div>
-          <div className="mt-2">
-            <AddToCollectionInline profileSlug={profile.slug} />
-          </div>
-        </div>
+  const labels: Record<ProfileTab, string> = {
+    subject: "Subject",
+    findings: "Findings",
+    evidence: evidenceCount === null ? "Evidence" : `Evidence (${evidenceCount})`,
+    discussion: `Discussion (${profile._count.comments})`,
+  };
+
+  const viewsBlock = (
+    <div className="font-typed text-[12px] leading-[1.7] text-navy md:text-right">
+      {profile.viewCount.toLocaleString()} views
+      <br />
+      {count(typings.length, "finding")}
+      {reads > 0 && (
+        <>
+          <br />
+          {count(reads, "read")}
+        </>
+      )}
+    </div>
+  );
+
+  const portrait = (
+    <div className="relative shrink-0">
+      <Portrait src={profile.imageUrl} alt={profile.name} w={150} h={180} className="max-md:h-[120px]! max-md:w-[100px]!" />
+      <PaperClip className="left-[14px] top-[-14px]" />
+      <span className="pointer-events-none absolute -left-px -top-px h-[10px] w-[10px] border-l-2 border-t-2 border-blue" aria-hidden="true" />
+      <span className="pointer-events-none absolute -bottom-px -right-px h-[10px] w-[10px] border-b-2 border-r-2 border-blue" aria-hidden="true" />
+      <UploadImageButton profileSlug={profile.slug} currentImage={profile.imageUrl} />
+    </div>
+  );
+
+  /** The compact subject strip at the top of the Evidence and Discussion tabs. */
+  const strip = (
+    <div className="flex items-center gap-4 border-b-2 border-ink pb-4">
+      <Portrait src={profile.imageUrl} alt="" />
+      <div className="min-w-0">
+        <div className="truncate font-display text-[32px] font-extrabold uppercase leading-none md:text-[40px]">{profile.name}</div>
+        {source && <Typed>{source}</Typed>}
       </div>
+    </div>
+  );
 
-      {/* External Links */}
-      {profile.externalIds && Object.keys(profile.externalIds).length > 0 && (
-        <div className="flex gap-2 flex-wrap">
-          {Object.entries(profile.externalIds).map(([key, value]) => (
-            <a
-              key={key}
-              href={value}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-2 py-1 text-xs rounded border border-[#1a2234] bg-[#141c2b] text-[#7888a0] hover:text-[#64ffda] transition-colors"
-            >
-              {key}
-            </a>
-          ))}
+  const subject = (
+    <>
+      <div className="relative flex flex-col gap-5 md:flex-row md:items-start md:gap-7">
+        <div className="flex gap-4 md:contents">
+          {portrait}
+          <FieldGrid className="min-w-0 flex-1 max-md:grid-cols-[minmax(0,1fr)] md:pr-[250px]">
+            <div className="lab max-md:hidden">Subject</div>
+            <h1 className="font-display text-[40px] font-extrabold uppercase leading-[0.95] tracking-[0.01em] md:text-[64px]">{profile.name}</h1>
+            {source && (
+              <>
+                <div className="lab max-md:hidden">Source</div>
+                <div className="ln text-[16px] max-md:border-0 max-md:text-[14px] max-md:text-navy">{source}</div>
+              </>
+            )}
+            {profile.description && (
+              <>
+                <div className="lab max-md:hidden">Summary</div>
+                <div className="ln text-[16px] max-md:border-0 max-md:text-[14px]">{profile.description}</div>
+              </>
+            )}
+          </FieldGrid>
         </div>
+        {(profile.bio || links.length > 0) && (
+          <FieldGrid className="md:hidden">
+            {profile.bio && <Field label="Notes" ruled>{profile.bio}</Field>}
+            {links.length > 0 && <Field label="Links">{links.map(([k, v], i) => <span key={k}>{i > 0 && ", "}<a href={v} target="_blank" rel="noopener noreferrer" className="underline">{k}</a></span>)}</Field>}
+          </FieldGrid>
+        )}
+        {/* phones: the stamp lands under the fields, beside the counts */}
+        <div className="flex items-center justify-between gap-4 md:hidden">
+          {stamp ? (
+            <Stamp code={stamp.code} line={stamp.line} size="sm" className="relative left-0 top-0" />
+          ) : (
+            <div className="dashed px-3 py-2 font-typed text-[12px] text-steel-2">No reads yet</div>
+          )}
+          {viewsBlock}
+        </div>
+        {stamp ? (
+          <Stamp code={stamp.code} line={stamp.line} className="right-10 top-[34px] hidden md:flex" />
+        ) : (
+          <div className="dashed absolute right-10 top-[34px] hidden w-[220px] flex-col gap-1 px-4 py-3 md:flex">
+            <span className="lab text-steel-2">Consensus</span>
+            <Typed>No reads yet. The first read stamps this file.</Typed>
+          </div>
+        )}
+        <div className="absolute right-11 top-[192px] hidden md:block">{viewsBlock}</div>
+      </div>
+      {(profile.bio || links.length > 0) && (
+        <FieldGrid className="hidden md:grid md:pl-[178px]">
+          {profile.bio && <Field label="Notes" ruled>{profile.bio}</Field>}
+          {links.length > 0 && (
+            <Field label="Links">
+              {links.map(([k, v], i) => (
+                <span key={k}>
+                  {i > 0 && ", "}
+                  <a href={v} target="_blank" rel="noopener noreferrer" className="underline">{k}</a>
+                </span>
+              ))}
+            </Field>
+          )}
+        </FieldGrid>
       )}
 
-      {/* Bio */}
-      {profile.bio && (
-        <section>
-          <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider mb-2">Biography</h2>
-          <p className="text-sm text-[#c8d0dc] leading-relaxed">{profile.bio}</p>
-        </section>
-      )}
+      <Section>
+        <SectionHead
+          title="Findings"
+          aside={
+            <>
+              {systems.size} of 20 systems on file
+              <TabLink to="findings" className="ml-4 text-blue underline hover:text-navy">Open all</TabLink>
+            </>
+          }
+        />
+        <VotePanel profileSlug={profile.slug} initial={typings} mode="summary" />
+      </Section>
 
-      {/* Typings by System — Replace static display with interactive VotePanel */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider">
-            Personality Typings
-          </h2>
-          <AddTypingForm profileSlug={profile.slug} />
-        </div>
-        <VotePanel profileSlug={profile.slug} />
-      </section>
-
-      {/* Cluster Disorder Voting */}
-      <DisorderVotePanel profileSlug={profile.slug} />
-
-      {/* Trait Vector Analysis */}
       <TraitVotePanel profileSlug={profile.slug} />
 
-      {/* Related Characters */}
+      <div className="flex flex-col-reverse gap-3 border-t-2 border-ink pt-[18px] sm:flex-row sm:justify-end">
+        <TabLink to="evidence" className="btn">Submit evidence</TabLink>
+        <AddTypingForm profileSlug={profile.slug} />
+      </div>
+    </>
+  );
+
+  const findings = (
+    <>
+      <SectionHead title="Findings" aside={`${systems.size} of 20 systems on file`} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Typed className="text-[14px]">Every read on this file, by system. Agree or disagree with each one; five readers certify a finding.</Typed>
+        <AddTypingForm profileSlug={profile.slug} variant="secondary" />
+      </div>
+      <VotePanel profileSlug={profile.slug} initial={typings} mode="full" />
+    </>
+  );
+
+  const evidence = (
+    <>
+      {strip}
+      {typings.length === 0 ? (
+        <Typed className="text-[14px]">No reads on this file yet, so nothing to file evidence against. Add your read first.</Typed>
+      ) : (
+        typings.map((t) => (
+          <div key={t.id} className="flex flex-col gap-3">
+            <SectionHead size={20} title={<>{t.typeValue} <span className="font-normal text-steel-2">{t.typingSystem.name}</span></>} />
+            <EvidencePanel typingId={t.id} />
+          </div>
+        ))
+      )}
+    </>
+  );
+
+  const discussion = (
+    <>
+      {strip}
+      <CommentSection profileSlug={profile.slug} />
+    </>
+  );
+
+  return (
+    <div className="flex flex-col gap-10 pb-10">
+      <div>
+        <ProfileTabs initial={initialTab} labels={labels} panels={{ subject, findings, evidence, discussion }} />
+      </div>
+
+      <div className="flex justify-end">
+        <AddToCollectionInline profileSlug={profile.slug} desk />
+      </div>
+
       {related.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider mb-3">
-            Related Characters
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <section className="flex flex-col gap-[14px]">
+          <SectionHead title="Related files" />
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             {related.map((p) => (
-              <ProfileCard key={p.slug} {...p} />
+              <ProfileCard key={p.slug} name={p.name} slug={p.slug} imageUrl={p.imageUrl} description={p.description} category={p.category} typings={p.typings} variant="desk" />
             ))}
           </div>
         </section>
       )}
-
-      {/* Comments */}
-      <section>
-        <CommentSection profileSlug={profile.slug} />
-      </section>
     </div>
   );
 }

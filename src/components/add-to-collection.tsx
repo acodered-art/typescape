@@ -1,7 +1,11 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
+import { Btn, Typed } from "@/components/dossier";
+import { FormNote, Modal } from "@/components/dossier/modal";
 
-export function AddToCollectionInline({ profileSlug }: { profileSlug: string }) {
+/** "+ Collection": a small typed link (card footers) or a desk button (profile page) that opens the reader's collections on paper. */
+export function AddToCollectionInline({ profileSlug, desk = false }: { profileSlug: string; desk?: boolean }) {
   const [open, setOpen] = useState(false);
   const [collections, setCollections] = useState<{ id: string; slug: string; name: string; _count: { items: number } }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +32,7 @@ export function AddToCollectionInline({ profileSlug }: { profileSlug: string }) 
       });
       if (res.ok) {
         const data = await res.json();
-        setMessage(data.removed ? "Removed" : "Added ✓");
+        setMessage(data.removed ? "Removed from the collection." : "Added to the collection.");
         setTimeout(() => setMessage(""), 1500);
       }
     } catch {}
@@ -36,39 +40,36 @@ export function AddToCollectionInline({ profileSlug }: { profileSlug: string }) 
 
   return (
     <>
-      <button
-        onClick={(e) => { e.stopPropagation(); openPicker(); }}
-        className="text-[10px] text-[#4a5a70] hover:text-[#64ffda] transition-colors"
-      >
-        + Collection
-      </button>
-
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setOpen(false)}>
-          <div className="w-72 p-4 rounded-lg border border-[#1a2234] bg-[#0e1420]" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xs font-semibold text-[#e8ecf4] mb-2">Add to Collection</h3>
-            {message && <div className="text-xs text-[#64ffda] mb-2">{message}</div>}
-            {loading ? (
-              <p className="text-xs text-[#4a5a70]">Loading...</p>
-            ) : collections.length === 0 ? (
-              <p className="text-xs text-[#4a5a70] italic">No collections</p>
-            ) : (
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {collections.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => handleAdd(c.slug)}
-                    className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-[#141c2b] text-[#c8d0dc]"
-                  >
-                    {c.name} ({c._count.items})
-                  </button>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setOpen(false)} className="w-full mt-2 text-xs text-[#4a5a70] hover:text-[#c8d0dc]">Close</button>
-          </div>
-        </div>
+      {desk ? (
+        <Btn variant="desk" onClick={openPicker}>+ Collection</Btn>
+      ) : (
+        <button type="button" onClick={(e) => { e.stopPropagation(); openPicker(); }} className="font-typed text-[12px] text-navy underline hover:text-blue">
+          + Collection
+        </button>
       )}
+
+      <Modal open={open} onClose={() => setOpen(false)} title="Add to a collection" width={400}>
+        <div className="flex flex-col gap-3">
+          {message && <FormNote>{message}</FormNote>}
+          {loading ? (
+            <Typed>Opening your collections.</Typed>
+          ) : collections.length === 0 ? (
+            <Typed>
+              No collections yet.{" "}
+              <Link href="/collections" className="underline">Start one</Link>.
+            </Typed>
+          ) : (
+            <div className="flex max-h-64 flex-col gap-[3px] overflow-y-auto">
+              {collections.map((c) => (
+                <button key={c.id} type="button" onClick={() => handleAdd(c.slug)} className="row-fill flex items-baseline justify-between gap-3 px-3 py-2 text-left hover:bg-blue">
+                  <span className="font-display text-[18px] font-bold uppercase tracking-[0.04em]">{c.name}</span>
+                  <span className="font-typed text-[12px] text-navy">{c._count.items} {c._count.items === 1 ? "file" : "files"}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
     </>
   );
 }

@@ -1,5 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
+import { DisorderVotePanel } from "@/components/disorder-vote-panel";
+import { Section, SectionHead, Typed } from "@/components/dossier";
+import { FormNote } from "@/components/dossier/modal";
 
 interface Trait {
   id: string;
@@ -39,40 +42,122 @@ interface VoteData {
   description: string;
 }
 
-const CLUSTER_BAR_COLORS: Record<string, string> = {
-  A: "bg-[#8ab4f8]",
-  B: "bg-[#ff6b6b]",
-  C: "bg-[#7ddfc0]",
-  none: "bg-[#4a5a70]",
-};
+const count = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
 
-const CLUSTER_TEXT_COLORS: Record<string, string> = {
-  A: "text-[#8ab4f8]",
-  B: "text-[#ff6b6b]",
-  C: "text-[#7ddfc0]",
-  none: "text-[#4a5a70]",
-};
+/* ---- The map. The patterns sit evenly on an ellipse, grouped by DSM cluster (A, then B, then C, then none); the
+   rings around each one show how closely the community survey matches it, and the crosshair sits between the
+   closest patterns. It is a layout of the similarity table, not a projection of the survey vectors. ---- */
+const MAP_W = 558;
+const MAP_H = 278;
+const CLUSTER_ORDER: Record<string, number> = { A: 0, B: 1, C: 2 };
 
-const CLUSTER_BG: Record<string, string> = {
-  A: "bg-[#2a3f6e]/20",
-  B: "bg-[#6b2a2a]/20",
-  C: "bg-[#2a4a3e]/20",
-  none: "bg-[#1a2234]/20",
-};
+type Placed = BreakdownEntry & { x: number; y: number; rank: number; label: string };
 
+/** "Obsessive-Compulsive Personality Disorder" prints as OBSESSIVE-COMPULSIVE; the no-pattern entry as NONE. */
+function shortName(name: string): string {
+  const short = name.replace(/\s*personality disorder\s*/i, "").replace(/\s*\/\s*other/i, "").trim();
+  return (short || name).toUpperCase();
+}
+
+function placePatterns(breakdown: BreakdownEntry[]): Placed[] {
+  const byPct = [...breakdown].sort((a, b) => b.percentage - a.percentage);
+  const rank = new Map(byPct.map((b, i) => [b.disorderId, i]));
+  const ordered = [...breakdown].sort((a, b) => (CLUSTER_ORDER[a.cluster] ?? 3) - (CLUSTER_ORDER[b.cluster] ?? 3));
+  const n = Math.max(1, ordered.length);
+  const cx = MAP_W / 2;
+  const cy = MAP_H / 2;
+  return ordered.map((b, i) => {
+    const angle = -Math.PI / 2 + (i / n) * Math.PI * 2;
+    return { ...b, x: cx + 215 * Math.cos(angle), y: cy + 100 * Math.sin(angle), rank: rank.get(b.disorderId) ?? 99, label: shortName(b.disorderName) };
+  });
+}
+
+function rings(pct: number): number {
+  if (pct >= 30) return 4;
+  if (pct >= 20) return 3;
+  if (pct >= 10) return 2;
+  return pct > 0 ? 1 : 0;
+}
+
+function TraitMap({ breakdown, surveyed }: { breakdown: BreakdownEntry[]; surveyed: number }) {
+  const placed = placePatterns(breakdown);
+  const top = [...placed].sort((a, b) => a.rank - b.rank).slice(0, 3).filter((p) => p.percentage > 0);
+  const weight = top.reduce((s, p) => s + p.percentage, 0);
+  const cross = surveyed > 0 && weight > 0 ? { x: top.reduce((s, p) => s + p.x * p.percentage, 0) / weight, y: top.reduce((s, p) => s + p.y * p.percentage, 0) / weight } : null;
+  const stroke = (rank: number) => (rank <= 1 ? "stroke-blue" : rank === 2 ? "stroke-steel" : "stroke-navy");
+  const fill = (rank: number) => (surveyed === 0 ? "fill-steel" : rank <= 1 ? "fill-blue" : rank === 2 ? "fill-steel-2" : "fill-navy");
+  return (
+    <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} width="100%" className="block" role="img" aria-label={surveyed > 0 ? `Trait space map. Closest patterns: ${top.map((p) => p.label).join(", ")}.` : "Trait space map with no surveys yet."}>
+      <defs>
+        <pattern id="trait-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M20 0H0V20" fill="none" className="stroke-navy" strokeOpacity="0.12" />
+        </pattern>
+      </defs>
+      <rect width={MAP_W} height={MAP_H} fill="url(#trait-grid)" />
+      {surveyed > 0 &&
+        placed.map((p) => {
+          const n = rings(p.percentage);
+          return (
+            <g key={p.disorderId} fill="none" className={stroke(p.rank)} strokeWidth={p.rank === 2 ? 2 : 1.5}>
+              {Array.from({ length: n }, (_, k) => (
+                <ellipse key={k} cx={p.x} cy={p.y} rx={20 + k * 20} ry={13 + k * 13} strokeOpacity={Math.max(0.15, 0.9 - k * 0.22)} />
+              ))}
+            </g>
+          );
+        })}
+      <g fontWeight="700" fontSize="12" letterSpacing="1.4" style={{ fontFamily: "var(--font-display)", fontVariationSettings: '"opsz" 72' }}>
+        {placed.map((p) => (
+          <text key={p.disorderId} x={p.x} y={p.y + 4} textAnchor="middle" className={fill(p.rank)}>
+            {p.label}
+          </text>
+        ))}
+      </g>
+      {cross && (
+        <g>
+          <g className="stroke-ink" strokeWidth="1.5" fill="none">
+            <line x1={cross.x - 20} y1={cross.y} x2={cross.x + 20} y2={cross.y} />
+            <line x1={cross.x} y1={cross.y - 20} x2={cross.x} y2={cross.y + 20} />
+            <circle cx={cross.x} cy={cross.y} r="7" />
+          </g>
+          <text x={cross.x + 8} y={cross.y + 32} fontSize="10" fontWeight="700" letterSpacing="1" className="fill-ink" style={{ fontFamily: "var(--font-typed)" }}>
+            COMMUNITY READ
+          </text>
+        </g>
+      )}
+    </svg>
+  );
+}
+
+/** Seven boxes from -3 to +3; the community's rounded average is the filled one. */
+function TraitBoxes({ avg }: { avg: number }) {
+  const filled = Math.max(-3, Math.min(3, Math.round(avg))) + 3;
+  return (
+    <div className="flex gap-[5px]" aria-hidden="true">
+      {Array.from({ length: 7 }, (_, i) => (
+        <span key={i} className={`h-[11px] w-[11px] border ${i === filled ? "border-blue bg-blue" : "border-navy"}`} />
+      ))}
+    </div>
+  );
+}
+
+const signed = (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(1)}`;
+
+/**
+ * "Trait space": the community's 12-axis survey drawn as a map of the DSM patterns it resembles, the nearest patterns
+ * as bars, the strongest traits as boxes. "Survey this character" reveals the survey itself (one vote per trait per
+ * reader, toggled off by voting the same value) and the direct pattern vote.
+ */
 export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
   const [traits, setTraits] = useState<Trait[]>([]);
   const [voteData, setVoteData] = useState<VoteData | null>(null);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState<Record<string, boolean>>({});
   const [message, setMessage] = useState("");
+  const [surveying, setSurveying] = useState(false);
 
   const fetchData = async () => {
     try {
-      const [tRes, vRes] = await Promise.all([
-        fetch("/api/traits"),
-        fetch(`/api/profiles/${profileSlug}/trait-votes`),
-      ]);
+      const [tRes, vRes] = await Promise.all([fetch("/api/traits"), fetch(`/api/profiles/${profileSlug}/trait-votes`)]);
       if (tRes.ok) setTraits(await tRes.json());
       if (vRes.ok) setVoteData(await vRes.json());
     } catch {} finally {
@@ -83,10 +168,7 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [tRes, vRes] = await Promise.all([
-        fetch("/api/traits"),
-        fetch(`/api/profiles/${profileSlug}/trait-votes`),
-      ]);
+      const [tRes, vRes] = await Promise.all([fetch("/api/traits"), fetch(`/api/profiles/${profileSlug}/trait-votes`)]);
       if (cancelled) return;
       if (tRes.ok) setTraits(await tRes.json());
       if (vRes.ok) setVoteData(await vRes.json());
@@ -106,12 +188,12 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setMessage(data.action === "removed" ? "Vote removed" : "Vote saved");
+        setMessage(data.action === "removed" ? "Vote withdrawn." : "Vote filed.");
         fetchData();
         setTimeout(() => setMessage(""), 2000);
       } else {
         const data = await res.json();
-        setMessage(data.error || "Failed");
+        setMessage(res.status === 401 ? "Sign in to survey a character." : data.error || "Failed");
       }
     } catch {
       setMessage("Network error");
@@ -120,190 +202,130 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
     }
   };
 
-  // Build my vote lookup
   const myVoteMap = new Map<string, number>();
   voteData?.myVotes.forEach((v) => myVoteMap.set(v.traitId, v.value));
-
-  // Build community avg lookup
   const avgMap = new Map<string, number>();
   voteData?.traits.forEach((t) => avgMap.set(t.traitId, t.avg));
 
-  if (loading) {
-    return (
-      <section className="p-4 rounded-lg border border-[#1a2234] bg-[#0e1420]">
-        <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider mb-3">
-          Trait Vector Analysis
-        </h2>
-        <p className="text-xs text-[#4a5a70]">Loading trait dimensions...</p>
-      </section>
-    );
-  }
+  const surveyed = voteData?.totalVoters ?? 0;
+  const nearest = voteData ? [...voteData.breakdown].sort((a, b) => b.percentage - a.percentage).filter((b) => b.percentage > 0).slice(0, 3) : [];
+  const strongest = traits
+    .map((t) => ({ trait: t, avg: avgMap.get(t.id) ?? 0 }))
+    .filter((x) => Math.abs(x.avg) > 0)
+    .sort((a, b) => Math.abs(b.avg) - Math.abs(a.avg))
+    .slice(0, 4);
+  const failed = message === "Failed" || message === "Network error" || message.startsWith("Sign in");
+  const readSentence = voteData?.autoNone || nearest.length === 0
+    ? "No pattern stands out yet."
+    : nearest.length === 1
+      ? `Reads as ${nearest[0].disorderName.toUpperCase()}.`
+      : `Reads as ${nearest[0].disorderName.toUpperCase()} with ${/^[AEIOU]/i.test(nearest[1].disorderName) ? "an" : "a"} ${nearest[1].disorderName.toUpperCase()} accent.`;
 
   return (
-    <section className="p-4 rounded-lg border border-[#1a2234] bg-[#0e1420]">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider">
-          Trait Vector Analysis
-        </h2>
-        {voteData && (
-          <span className="text-xs text-[#4a5a70]">
-            {voteData.totalVoters} voter{voteData.totalVoters !== 1 ? "s" : ""}
-          </span>
-        )}
+    <Section className="grid gap-7 md:grid-cols-[560px_minmax(0,1fr)]">
+      <div className="flex flex-col gap-[10px]">
+        <SectionHead title="Trait space" aside={loading ? "Opening the survey" : surveyed > 0 ? `${count(surveyed, "reader")} surveyed` : "No surveys yet"} />
+        <div className="border border-ink">
+          <TraitMap breakdown={voteData?.breakdown ?? []} surveyed={surveyed} />
+        </div>
+        <Typed className="text-[12px] leading-[1.5]">
+          {surveyed > 0
+            ? "Rings show how closely the community survey matches each pattern. The crosshair sits between the closest ones."
+            : "The map fills in as readers survey this character across twelve traits."}
+        </Typed>
       </div>
 
-      {message && (
-        <div className="mb-3 text-xs px-2 py-1 rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20">
-          {message}
-        </div>
-      )}
-
-      {/* Description */}
-      {voteData && voteData.description && (
-        <div className="mb-4 p-3 rounded border border-[#1a2234] bg-[#141c2b]">
-          <p className="text-sm text-[#c8d0dc] italic">{voteData.description}</p>
-        </div>
-      )}
-
-      {/* Trait Sliders */}
-      <div className="space-y-4">
-        {traits.map((trait) => {
-          const myVal = myVoteMap.get(trait.id);
-          const communityAvg = avgMap.get(trait.id) ?? 0;
-
-          return (
-            <div key={trait.id}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-[#c8d0dc] font-medium">{trait.name}</span>
-                <div className="flex items-center gap-2 text-[10px]">
-                  {myVal !== undefined && (
-                    <span className="text-[#64ffda]">You: {myVal > 0 ? "+" : ""}{myVal}</span>
-                  )}
-                  <span className="text-[#4a5a70]">
-                    Community: {communityAvg > 0 ? "+" : ""}{communityAvg.toFixed(1)}
-                  </span>
+      <div className="flex flex-col gap-[10px]">
+        {surveyed > 0 && nearest.length > 0 && (
+          <>
+            <div className="font-display text-[20px] font-extrabold uppercase tracking-[0.12em]">Nearest pattern</div>
+            {nearest.map((b, i) => (
+              <div key={b.disorderId} className="grid grid-cols-[120px_minmax(0,1fr)_40px] items-center gap-[10px] text-[14px]">
+                <span className="truncate" title={b.disorderName}>{b.disorderName}</span>
+                <div className="h-2 bg-paper-2">
+                  <div className={`h-2 ${i < 2 ? "bg-blue" : "bg-steel"}`} style={{ width: `${Math.min(100, b.percentage)}%` }} />
                 </div>
+                <span className={`text-right font-typed text-[13px] ${i < 2 ? "font-bold text-blue" : "text-navy"}`}>{b.percentage}%</span>
               </div>
+            ))}
+            <div className="border-t border-ink pt-[10px] font-typed text-[14px] leading-[1.5]">{readSentence}</div>
+            {voteData?.description && <p className="text-[14px] leading-[1.5]">{voteData.description}</p>}
+          </>
+        )}
 
-              {/* Labels */}
-              <div className="flex justify-between text-[10px] text-[#4a5a70] mb-0.5">
-                <span>{trait.lowLabel}</span>
-                <span>{trait.highLabel}</span>
+        {strongest.length > 0 && (
+          <>
+            <div className="mt-2 font-display text-[20px] font-extrabold uppercase tracking-[0.12em]">Strongest traits</div>
+            {strongest.map(({ trait, avg }) => (
+              <div key={trait.id} className="grid grid-cols-[130px_minmax(0,1fr)_44px] items-center gap-[10px] text-[14px]">
+                <span className="truncate" title={`${trait.lowLabel} to ${trait.highLabel}`}>{trait.name}</span>
+                <TraitBoxes avg={avg} />
+                <span className="text-right font-typed text-[13px]">{signed(avg)}</span>
               </div>
+            ))}
+          </>
+        )}
 
-              {/* Slider track */}
-              <div className="relative h-8 flex items-center">
-                {/* Background track */}
-                <div className="absolute inset-x-0 h-1.5 bg-[#1a2234] rounded-full" />
-
-                {/* Community average marker */}
-                <div
-                  className="absolute w-0.5 h-5 bg-[#7888a0] rounded-full transition-all"
-                  style={{ left: `${((communityAvg + 3) / 6) * 100}%`, transform: "translateX(-50%)" }}
-                  title={`Community avg: ${communityAvg.toFixed(1)}`}
-                />
-
-                {/* Clickable positions */}
-                {[-3, -2, -1, 0, 1, 2, 3].map((val) => {
-                  const isActive = myVal === val;
-                  return (
-                    <button
-                      key={val}
-                      onClick={() => handleVote(trait.id, val)}
-                      disabled={voting[trait.id]}
-                      className={`absolute w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${
-                        isActive
-                          ? "border-[#64ffda] bg-[#64ffda]/20 scale-110 z-10"
-                          : "border-[#2a3a4a] hover:border-[#64ffda]/40 hover:scale-110 z-10"
-                      }`}
-                      style={{ left: `${((val + 3) / 6) * 100}%`, transform: "translateX(-50%)" }}
-                      title={`${trait.lowLabel} ← ${val} → ${trait.highLabel}`}
-                    >
-                      {isActive && <span className="w-2 h-2 rounded-full bg-[#64ffda]" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Value labels */}
-              <div className="flex justify-between text-[10px] text-[#4a5a70] mt-0.5">
-                <span>-3</span>
-                <span>-2</span>
-                <span>-1</span>
-                <span>0</span>
-                <span>+1</span>
-                <span>+2</span>
-                <span>+3</span>
-              </div>
-            </div>
-          );
-        })}
+        <Typed className="mt-1">
+          {traits.length > strongest.length && `${count(traits.length - strongest.length, "more trait")} on file. `}
+          <button type="button" onClick={() => setSurveying((s) => !s)} className="text-blue underline hover:text-navy" aria-expanded={surveying}>
+            {surveying ? "Close the survey" : "Survey this character"}
+          </button>
+        </Typed>
       </div>
 
-      {/* Results Breakdown */}
-      {voteData && voteData.breakdown.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-[#1a2234]">
-          <h3 className="text-xs font-semibold text-[#7888a0] uppercase tracking-wider mb-3">
-            Disorder Match
-          </h3>
-          <div className="space-y-1.5">
-            {voteData.breakdown.map((b) => {
-              const barColor = CLUSTER_BAR_COLORS[b.cluster] || "bg-[#4a5a70]";
-              const textColor = CLUSTER_TEXT_COLORS[b.cluster] || "text-[#4a5a70]";
-              const bgColor = CLUSTER_BG[b.cluster] || "bg-[#1a2234]/20";
-
+      {surveying && (
+        <div className="flex flex-col gap-5 border-t border-steel pt-4 md:col-span-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="lab">Your survey</span>
+            <Typed>Mark where this character sits on each trait. The outlined box is the community average.</Typed>
+          </div>
+          {message && <FormNote error={failed}>{message}</FormNote>}
+          <div className="grid gap-x-8 gap-y-3 md:grid-cols-2">
+            {traits.map((trait) => {
+              const myVal = myVoteMap.get(trait.id);
+              const communityAvg = avgMap.get(trait.id) ?? 0;
+              const avgBox = Math.max(-3, Math.min(3, Math.round(communityAvg)));
               return (
-                <div
-                  key={b.disorderId}
-                  className={`flex items-center gap-2 px-3 py-2 rounded border text-sm ${
-                    b.percentage > 20 ? "border-[#2a3a4a] bg-[#141c2b]" : "border-[#1a2234] bg-[#0e1420]/50"
-                  }`}
-                >
-                  {/* Cluster badge */}
-                  <span className={`shrink-0 w-5 h-5 rounded text-[10px] flex items-center justify-center font-bold ${bgColor} ${textColor}`}>
-                    {b.cluster === "none" ? "—" : b.cluster}
-                  </span>
-
-                  {/* Name */}
-                  <span className="text-xs text-[#c8d0dc] min-w-[8rem]">{b.disorderName}</span>
-
-                  {/* Bar */}
-                  <div className="flex-1 h-3 bg-[#0a0e17] rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${barColor} rounded-full transition-all`}
-                      style={{ width: `${b.percentage}%` }}
-                    />
+                <div key={trait.id} className="flex flex-col gap-1">
+                  <div className="flex items-baseline justify-between gap-2 text-[14px]">
+                    <span title={trait.description ?? undefined}>{trait.name}</span>
+                    <span className="font-typed text-[12px] text-navy">
+                      {myVal !== undefined ? `you ${signed(myVal)}, ` : ""}
+                      community {signed(communityAvg)}
+                    </span>
                   </div>
-
-                  {/* Percentage */}
-                  <span className="text-xs text-[#7888a0] w-10 text-right shrink-0">
-                    {b.percentage}%
-                  </span>
-
-                  {/* Similarity */}
-                  <span className="text-[10px] text-[#4a5a70] w-12 text-right shrink-0">
-                    {b.similarity.toFixed(2)} sim
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-[72px] shrink-0 truncate font-typed text-[11px] text-steel-2" title={trait.lowLabel}>{trait.lowLabel}</span>
+                    <div className="flex flex-1 justify-between">
+                      {[-3, -2, -1, 0, 1, 2, 3].map((val) => {
+                        const mine = myVal === val;
+                        return (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => handleVote(trait.id, val)}
+                            disabled={voting[trait.id]}
+                            aria-pressed={mine}
+                            aria-label={`${trait.name}: ${signed(val)}`}
+                            title={`${signed(val)}`}
+                            className={`h-5 w-5 border ${mine ? "border-blue bg-blue" : surveyed > 0 && val === avgBox ? "border-2 border-navy hover:bg-paper-2" : "border-steel hover:border-navy hover:bg-paper-2"}`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <span className="w-[72px] shrink-0 truncate text-right font-typed text-[11px] text-steel-2" title={trait.highLabel}>{trait.highLabel}</span>
+                  </div>
                 </div>
               );
             })}
           </div>
-
-          {/* Auto-detect None */}
-          {voteData.autoNone && (
-            <div className="mt-2 p-2 rounded border border-[#4a5a70]/30 bg-[#1a2234]/20 text-xs text-[#7888a0] text-center">
-              No disorder exceeds 15% similarity &mdash; traits don&apos;t strongly align with any cluster
-            </div>
-          )}
+          <div className="flex flex-col gap-3 border-t border-steel pt-4">
+            <span className="lab">Or file a pattern directly</span>
+            <DisorderVotePanel profileSlug={profileSlug} />
+          </div>
         </div>
       )}
-
-      {/* Empty state */}
-      {voteData && voteData.totalVoters === 0 && (
-        <p className="text-xs text-[#4a5a70] italic mt-4 text-center">
-          No trait votes yet. Click the dots on each slider to rate this character.
-        </p>
-      )}
-    </section>
+    </Section>
   );
 }

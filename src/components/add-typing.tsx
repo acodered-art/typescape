@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Btn } from "@/components/dossier";
+import { FormNote, Modal, SelectPaper } from "@/components/dossier/modal";
 
-export function AddTypingForm({ profileSlug }: { profileSlug: string }) {
+/** "Add your read": a paper modal with the system and type on typed selects. Filing reloads the file. */
+export function AddTypingForm({ profileSlug, variant = "primary", label = "Add your read" }: { profileSlug: string; variant?: "primary" | "secondary" | "small"; label?: string }) {
   const [open, setOpen] = useState(false);
   const [systemId, setSystemId] = useState("");
   const [typeValue, setTypeValue] = useState("");
@@ -22,6 +25,7 @@ export function AddTypingForm({ profileSlug }: { profileSlug: string }) {
   }, []);
 
   const sys = systems.find((s) => s.id === systemId);
+  const filed = message === "Read filed.";
 
   const handleSubmit = async () => {
     if (!systemId || !typeValue) return;
@@ -35,7 +39,7 @@ export function AddTypingForm({ profileSlug }: { profileSlug: string }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage("Typing submitted!");
+        setMessage("Read filed.");
         setOpen(false);
         window.location.reload();
       } else {
@@ -50,54 +54,39 @@ export function AddTypingForm({ profileSlug }: { profileSlug: string }) {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="text-xs px-2 py-1 rounded border border-[#64ffda]/20 text-[#64ffda] bg-[#64ffda]/10 hover:bg-[#64ffda]/20 transition-colors"
-      >
-        + Add Typing
-      </button>
+      <Btn variant={variant} onClick={() => setOpen(true)}>
+        {label}
+      </Btn>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setOpen(false)}>
-          <div className="w-80 p-4 rounded-lg border border-[#1a2234] bg-[#0e1420]" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-semibold text-[#e8ecf4] mb-3">Submit a Typing</h3>
-            <div className="space-y-2">
-              <select
-                value={systemId}
-                onChange={(e) => { setSystemId(e.target.value); setTypeValue(""); }}
-                className="w-full px-2 py-1.5 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc]"
-              >
-                <option value="">Select system...</option>
-                {systems.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-              <select
-                value={typeValue}
-                onChange={(e) => setTypeValue(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc]"
-                disabled={!sys}
-              >
-                <option value="">Select type...</option>
-                {sys?.types?.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-              {message && (
-                <div className={`text-xs p-2 rounded ${message === "Typing submitted!" ? "bg-[#64ffda]/10 text-[#64ffda]" : "bg-[#ff6b6b]/10 text-[#ff6b6b]"}`}>
-                  {message}
-                </div>
-              )}
-              <div className="flex gap-2 pt-2">
-                <button onClick={() => setOpen(false)} className="flex-1 px-3 py-1.5 text-xs rounded border border-[#1a2234] text-[#7888a0] hover:bg-[#1a2234]">Cancel</button>
-                <button onClick={handleSubmit} disabled={loading || !systemId || !typeValue} className="flex-1 px-3 py-1.5 text-xs rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 disabled:opacity-30">
-                  {loading ? "..." : "Submit"}
-                </button>
-              </div>
-            </div>
+      <Modal open={open} onClose={() => setOpen(false)} title="Add your read">
+        <div className="flex flex-col gap-4">
+          <label className="flex flex-col gap-1">
+            <span className="lab">System</span>
+            <SelectPaper value={systemId} onChange={(e) => { setSystemId(e.target.value); setTypeValue(""); }}>
+              <option value="">Choose a system</option>
+              {systems.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </SelectPaper>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="lab">Read</span>
+            <SelectPaper value={typeValue} onChange={(e) => setTypeValue(e.target.value)} disabled={!sys}>
+              <option value="">{sys ? "Choose a type" : "Choose a system first"}</option>
+              {sys?.types?.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </SelectPaper>
+          </label>
+          {message && <FormNote error={!filed}>{message}</FormNote>}
+          <div className="flex justify-end gap-3 pt-2">
+            <Btn onClick={() => setOpen(false)}>Cancel</Btn>
+            <Btn variant="primary" onClick={handleSubmit} disabled={loading || !systemId || !typeValue}>
+              {loading ? "Filing" : "File the read"}
+            </Btn>
           </div>
         </div>
-      )}
+      </Modal>
     </>
   );
 }
