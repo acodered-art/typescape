@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { InkTag, NavyCard } from "@/components/dossier";
+import { useReaderHandle } from "@/components/dossier/reader";
 
 interface StreakData {
   streakType: string;
@@ -17,12 +18,13 @@ interface ChallengeData {
 
 /**
  * The reader's login streak and the day's challenge as navy cards on the desk.
- * Signed out (or nothing on file) it prompts to sign in, unless `quiet`, when it renders nothing.
+ * Signed out it prompts to sign in; signed in with nothing on file it says so. With `quiet` either case renders nothing.
  */
 export function StreaksAndChallenges({ quiet = false }: { quiet?: boolean }) {
   const [streaks, setStreaks] = useState<StreakData[]>([]);
   const [challenge, setChallenge] = useState<ChallengeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const me = useReaderHandle();
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +50,11 @@ export function StreaksAndChallenges({ quiet = false }: { quiet?: boolean }) {
 
   if (!loginStreak && !challenge) {
     if (quiet) return null;
-    return <NavyCard title="Streaks and challenges">Sign in to keep a login streak and take the daily challenge.</NavyCard>;
+    return (
+      <NavyCard title="Streaks and challenges">
+        {me ? "No streak on file yet. Each day you sign in adds to one, and the day's challenge appears here when one is posted." : "Sign in to keep a login streak and take the daily challenge."}
+      </NavyCard>
+    );
   }
 
   return (

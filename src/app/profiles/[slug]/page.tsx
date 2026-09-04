@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { calcConsensus } from "@/lib/utils";
+import { auth } from "@/lib/session";
 import { FindingsRail, VotePanel, type TypingRead } from "@/components/vote-panel";
 import { CommentSection } from "@/components/comment-section";
 import { EvidencePanel } from "@/components/evidence-panel";
@@ -69,6 +70,18 @@ async function countEvidence(profileId: string): Promise<number | null> {
   }
 }
 
+/** The signed-in reader's own vote on each of this file's reads, so the agree and disagree buttons open in the right state (the profile API does not say which vote is yours). */
+async function myVotes(profileId: string): Promise<Record<string, 1 | -1>> {
+  try {
+    const session = await auth();
+    if (!session?.user) return {};
+    const votes = await prisma.vote.findMany({ where: { userId: session.user.id, profileTyping: { profileId } }, select: { profileTypingId: true, voteValue: true } });
+    return Object.fromEntries(votes.map((v) => [v.profileTypingId, v.voteValue > 0 ? 1 : -1]));
+  } catch {
+    return {};
+  }
+}
+
 /** "Naruto, filed under Anime & Manga" from the category tree; a top-level category is just its name. */
 function sourceLine(category: { name: string; slug: string } | null, tree: CategoryNode[]): string | null {
   if (!category) return null;
@@ -101,10 +114,11 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   if (!profile) notFound();
 
   const base = "http://localhost:3002";
-  const [related, tree, evidenceCount] = await Promise.all([
+  const [related, tree, evidenceCount, mine] = await Promise.all([
     getJson<RelatedProfile[]>(`${base}/api/profiles/${slug}/related`, []),
     getJson<CategoryNode[]>(`${base}/api/categories`, []),
     countEvidence(profile.id),
+    myVotes(profile.id),
   ]);
 
   const typings = bySystemOrder(profile.typings);
@@ -229,7 +243,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
             </>
           }
         />
-        <VotePanel profileSlug={profile.slug} initial={typings} mode="summary" />
+        <VotePanel profileSlug={profile.slug} initial={typings} initialMine={mine} mode="summary" />
       </Section>
 
       <TraitVotePanel profileSlug={profile.slug} />
@@ -248,7 +262,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
         <Typed className="text-[14px]">Every read on this file, by system. Agree or disagree with each one; five readers certify a finding.</Typed>
         <AddTypingForm profileSlug={profile.slug} variant="secondary" />
       </div>
-      <VotePanel profileSlug={profile.slug} initial={typings} mode="full" />
+      <VotePanel profileSlug={profile.slug} initial={typings} initialMine={mine} mode="full" />
     </>
   );
 

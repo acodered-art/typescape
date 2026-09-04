@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ProfileCard } from "@/components/profile-card";
 import { EmptySlot, PageTitle, Sheet, Typed } from "@/components/dossier";
 
@@ -30,7 +31,8 @@ interface CollectionData {
 async function getCollection(slug: string): Promise<CollectionData | null> {
   const base = "http://localhost:3002";
   try {
-    const res = await fetch(`${base}/api/collections/${slug}`, { cache: "no-store" });
+    // The reader's cookies go along, so an owner can open their own private collection.
+    const res = await fetch(`${base}/api/collections/${slug}`, { cache: "no-store", headers: { cookie: (await cookies()).toString() } });
     if (!res.ok) return null;
     return res.json();
   } catch {

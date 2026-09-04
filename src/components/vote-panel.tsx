@@ -69,10 +69,11 @@ function CrossReads({ systemSlug, typeValue }: { systemSlug: string; typeValue: 
  * DISPUTED tag, agree/disagree. `full` = every read grouped by system (the Findings tab). Voting keeps the
  * existing toggle semantics (same value again removes the vote); the reader's own vote renders filled blue.
  */
-export function VotePanel({ profileSlug, initial, mode = "summary" }: { profileSlug: string; initial?: TypingRead[]; mode?: "summary" | "full" }) {
+/** `initialMine` is the reader's own vote per read, read server-side; the profile API does not say which vote is yours. */
+export function VotePanel({ profileSlug, initial, initialMine, mode = "summary" }: { profileSlug: string; initial?: TypingRead[]; initialMine?: Record<string, 1 | -1>; mode?: "summary" | "full" }) {
   const [typings, setTypings] = useState<TypingRead[]>(initial ?? []);
   const [loading, setLoading] = useState(!initial);
-  const [myVotes, setMyVotes] = useState<Record<string, 1 | -1 | null>>({});
+  const [myVotes, setMyVotes] = useState<Record<string, 1 | -1 | null>>(initialMine ?? {});
   const [note, setNote] = useState("");
 
   const fetchTypings = useCallback(async () => {

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { auth } from "@/lib/session";
 import { Btn, InkTag, PageTitle, Section, SectionHead, Sheet, Typed } from "@/components/dossier";
@@ -40,7 +41,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 async function getGroup(slug: string): Promise<GroupData | null> {
   const base = "http://localhost:3002";
   try {
-    const res = await fetch(`${base}/api/groups/${slug}`, { cache: "no-store" });
+    // The reader's cookies go along, or the API cannot say whether they are a member.
+    const res = await fetch(`${base}/api/groups/${slug}`, { cache: "no-store", headers: { cookie: (await cookies()).toString() } });
     if (!res.ok) return null;
     return res.json();
   } catch {

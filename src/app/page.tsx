@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { ProfileCard } from "@/components/profile-card";
 import { TypingBadge } from "@/components/typing-badge";
 import { StreaksAndChallenges } from "@/components/streaks/streaks-display";
-import { Btn, FileCard, InkTag, NavyCard, SectionHead, SegBar, bySystemOrder } from "@/components/dossier";
+import { Btn, FileCard, InkTag, NavyCard, SectionHead, SegBar, bySystemOrder, uniqueReads } from "@/components/dossier";
 
 type Typing = { typingSystem: { name: string; slug: string }; typeValue: string; confidence: number };
 type ListProfile = { name: string; slug: string; imageUrl: string | null; description: string | null; category: { name: string; slug: string } | null; typings: Typing[] };
@@ -58,7 +58,7 @@ function boardRow(p: BoardSource): BoardRow {
     systems.set(s.slug, s);
   }
   const top = [...systems.values()].sort((a, b) => b.readers.size - a.readers.size)[0] ?? null;
-  const chips = bySystemOrder(p.typings).slice(0, 3).map((t) => ({ code: t.typeValue, systemSlug: t.typingSystem.slug, systemName: t.typingSystem.name }));
+  const chips = bySystemOrder(uniqueReads(p.typings).sort((a, b) => b.votes.length - a.votes.length)).slice(0, 3).map((t) => ({ code: t.typeValue, systemSlug: t.typingSystem.slug, systemName: t.typingSystem.name }));
   const base: BoardRow = { name: p.name, slug: p.slug, imageUrl: p.imageUrl, series: p.category?.name ?? null, system: null, chips, lead: null, runner: null, readers: 0, disputed: false };
   if (!top || top.readers.size === 0) return base;
   const total = [...top.reads.values()].reduce((a, b) => a + b, 0);

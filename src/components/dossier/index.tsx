@@ -271,3 +271,15 @@ export function leadingRead<T extends { votes: { voteValue: number }[] }>(list: 
   const agreed = (t: T) => t.votes.filter((v) => v.voteValue > 0).length;
   return [...voted].sort((a, b) => agreed(b) - agreed(a))[0];
 }
+
+/** One chip per read: the same type filed by two readers is one finding on a card or a board row. Keeps, for each system-and-type pair, the most voted read, then the most agreed one (confidence), then the first. */
+export function uniqueReads<T extends { typeValue: string; typingSystem: { slug: string }; votes?: { voteValue: number }[]; confidence?: number }>(list: T[]): T[] {
+  const best = new Map<string, T>();
+  const score = (t: T) => (t.votes?.length ?? 0) * 1000 + (t.confidence ?? 0);
+  for (const t of list) {
+    const key = `${t.typingSystem.slug}|${t.typeValue}`;
+    const cur = best.get(key);
+    if (!cur || score(t) > score(cur)) best.set(key, t);
+  }
+  return [...best.values()];
+}

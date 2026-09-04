@@ -163,7 +163,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       </div>
     </>
   ) : isMe ? (
-    <EmptySlot label="Self-reported type" className="md:absolute md:right-10 md:top-[34px] md:w-[240px]">
+    <EmptySlot label="Self-reported type" className="md:absolute md:right-10 md:top-[34px] md:w-[210px]">
       No self-reported type on this file yet. Set my type below.
     </EmptySlot>
   ) : null;
