@@ -1,16 +1,17 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { use, useState } from "react";
+import { Btn, PageTitle, Sheet, Typed } from "@/components/dossier";
+import { FormNote } from "@/components/dossier/modal";
 
+/** A new post on paper: title and body as fields, one primary "File the post". */
 export default function NewPostPage({ params }: { params: Promise<{ slug: string }> }) {
-  const [slug, setSlug] = useState<string>("");
+  const { slug } = use(params);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
-
-  useState(() => { params.then((p) => setSlug(p.slug)); });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +29,7 @@ export default function NewPostPage({ params }: { params: Promise<{ slug: string
         router.push(`/groups/${slug}/post/${post.id}`);
       } else {
         const data = await res.json();
-        setError(data.error || "Failed to post");
+        setError(res.status === 401 ? "Sign in to post." : data.error || "That did not post.");
       }
     } catch {
       setError("Network error");
@@ -37,44 +38,31 @@ export default function NewPostPage({ params }: { params: Promise<{ slug: string
     }
   };
 
-  if (!slug) return <div className="text-sm text-[#4a5a70] p-4">Loading...</div>;
-
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-[#e8ecf4]">New Post</h1>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        {error && (
-          <div className="p-2 text-xs rounded border border-[#ff6b6b]/40 bg-[#ff6b6b]/10 text-[#ff6b6b]">{error}</div>
-        )}
-        <div>
-          <label className="block text-xs text-[#7888a0] mb-1">Title *</label>
-          <input
-            type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder="What's on your mind?"
-            required maxLength={200}
-            className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-[#7888a0] mb-1">Body *</label>
-          <textarea
-            value={text} onChange={(e) => setText(e.target.value)}
-            placeholder="Share your thoughts, analysis, or questions..."
-            rows={8}
-            required
-            className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40 resize-y"
-          />
-          <p className="text-xs text-[#4a5a70] mt-1">{text.length}/10000</p>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => router.back()}
-            className="px-4 py-2 text-sm rounded border border-[#1a2234] text-[#7888a0] hover:bg-[#1a2234] transition-colors">Cancel</button>
-          <button type="submit" disabled={loading || !title.trim() || !text.trim()}
-            className="px-4 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 disabled:opacity-30 transition-colors">
-            {loading ? "Posting..." : "Post"}
-          </button>
-        </div>
-      </form>
+    <div className="pb-10">
+      <PageTitle title="New post" aside={`In ${slug}`} />
+      <div className="max-w-[720px]">
+        <Sheet>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1">
+              <span className="lab">Title</span>
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What the post is about" required maxLength={200} className="input-paper" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="lab">Body</span>
+              <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Your analysis, your question, or the case you want to make." rows={8} required className="input-paper resize-y" />
+              <Typed className="text-[12px] text-steel-2">{text.length} of 10000</Typed>
+            </label>
+            {error && <FormNote error>{error}</FormNote>}
+            <div className="flex flex-col-reverse gap-3 border-t-2 border-ink pt-4 sm:flex-row sm:justify-end">
+              <Btn onClick={() => router.back()}>Cancel</Btn>
+              <Btn type="submit" variant="primary" disabled={loading || !title.trim() || !text.trim()}>
+                {loading ? "Filing" : "File the post"}
+              </Btn>
+            </div>
+          </form>
+        </Sheet>
+      </div>
     </div>
   );
 }
