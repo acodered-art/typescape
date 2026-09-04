@@ -90,7 +90,7 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
   return (
     <div>
       <PageTitle title="The systems" aside={`${TYPING_SYSTEMS.length} on file. ${known.length} open for reads.`} />
-      <div className="grid gap-7 md:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="grid gap-7 md:grid-cols-[240px_minmax(0,1fr)] md:items-start">
         <aside className="flex flex-col gap-[22px]">
           <div className="flex flex-col gap-2">
             <SectionHead size={20} title="Open for reads" />
