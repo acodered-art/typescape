@@ -27,6 +27,8 @@ export function InkFilter() {
 export function Sheet({ punched = false, className = "", children }: { punched?: boolean; className?: string; children: ReactNode }) {
   return (
     <div className="sheet-wrap">
+      <span className="sheet-under sheet-under-1" aria-hidden="true" />
+      <span className="sheet-under sheet-under-2" aria-hidden="true" />
       <div className={`sheet on-paper ${punched ? "sheet-punched" : ""} ${className}`}>{children}</div>
     </div>
   );

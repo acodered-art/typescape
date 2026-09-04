@@ -47,12 +47,17 @@
   .tab:hover { color: var(--color-paper); }
   .tab-active, .tab-active:hover { background: var(--color-blue); color: var(--color-ink); }
   .tab-sm { font-size: 15px; letter-spacing: 0.12em; padding: 9px 14px 7px; clip-path: polygon(0 100%, 6px 0, calc(100% - 6px) 0, 100% 100%); }
+  /* phones: every tab takes the small cut (the phone mockups slant at 6px) */
+  @media (max-width: 640px) {
+    .tab { font-size: 15px; letter-spacing: 0.12em; padding: 9px 14px 7px; clip-path: polygon(0 100%, 6px 0, calc(100% - 6px) 0, 100% 100%); }
+  }
 
   /* ---- the sheet, on a stack of two loose sheets ---- */
   .sheet-wrap { position: relative; }
-  .sheet-wrap::before, .sheet-wrap::after { content: ""; position: absolute; border: 1px solid var(--color-steel); }
-  .sheet-wrap::before { left: 12px; right: -12px; top: 10px; bottom: -12px; background: var(--color-paper-2); transform: rotate(0.8deg); }
-  .sheet-wrap::after { left: 5px; right: -6px; top: 4px; bottom: -6px; background: var(--color-paper); transform: rotate(-0.45deg); }
+  /* The two loose sheets under the file are real elements rendered BEFORE the sheet (see <Sheet>), so they paint under it without z-index. */
+  .sheet-under { position: absolute; border: 1px solid var(--color-steel); pointer-events: none; }
+  .sheet-under-1 { left: 12px; right: -12px; top: 10px; bottom: -12px; background: var(--color-paper-2); transform: rotate(0.8deg); }
+  .sheet-under-2 { left: 5px; right: -6px; top: 4px; bottom: -6px; background: var(--color-paper); transform: rotate(-0.45deg); }
   .sheet { position: relative; background: var(--color-paper); color: var(--color-ink); border-top: 4px solid var(--color-blue); border-radius: 0 4px 4px 4px; box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55); padding: 32px 36px 28px; }
   .sheet-punched::before, .sheet-punched::after { content: ""; position: absolute; left: 12px; width: 12px; height: 12px; border-radius: 50%; background: var(--color-ink); }
   .sheet-punched::before { top: 34%; }

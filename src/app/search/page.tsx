@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { ProfileCard } from "@/components/profile-card";
+import { TYPING_SYSTEMS } from "@/lib/typing-systems";
+import { PageTitle } from "@/components/dossier";
 import { SearchFilters } from "./search-filters";
+import { FileSheet, ShowMore, SortTabs, ThisSearch, type BrowseProfile, type FacetType } from "./browse-parts";
 
 interface SearchPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -9,12 +11,15 @@ interface SearchPageProps {
 interface FacetData {
   total: number;
   categories: { slug: string; name: string; count: number }[];
-  types: { typeValue: string; systemSlug: string; systemName: string; count: number }[];
+  types: FacetType[];
 }
 
-async function getData(params: Record<string, string>, base: string) {
+const PAGE = 30;
+const MAX_LIMIT = 120;
+
+async function getData(params: Record<string, string>, limit: number, base: string) {
   const profileParams = new URLSearchParams(params);
-  profileParams.set("limit", "30");
+  profileParams.set("limit", String(limit));
 
   const [profilesRes, facetsRes] = await Promise.all([
     fetch(`${base}/api/profiles?${profileParams.toString()}`, { cache: "no-store" }).catch(() => null),
@@ -22,10 +27,12 @@ async function getData(params: Record<string, string>, base: string) {
   ]);
 
   const profiles = profilesRes?.ok ? await profilesRes.json() : { profiles: [], total: 0 };
-  const facets = facetsRes?.ok ? await facetsRes.json() : { total: 0, categories: [], types: [] };
+  const facets: FacetData = facetsRes?.ok ? await facetsRes.json() : { total: 0, categories: [], types: [] };
 
-  return { profiles: profiles.profiles, total: profiles.total, facets };
+  return { profiles: (profiles.profiles || []) as BrowseProfile[], total: (profiles.total || 0) as number, facets };
 }
+
+const count = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const sp = await searchParams;
@@ -35,6 +42,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const system = (typeof sp.system === "string" ? sp.system : sp.system?.[0]) || "";
   const category = (typeof sp.category === "string" ? sp.category : sp.category?.[0]) || "";
   const sort = (typeof sp.sort === "string" ? sp.sort : sp.sort?.[0]) || "views";
+  const limitRaw = Number(typeof sp.limit === "string" ? sp.limit : sp.limit?.[0]);
+  const limit = Math.min(MAX_LIMIT, Math.max(PAGE, Number.isFinite(limitRaw) ? limitRaw : PAGE));
 
   // Build params for API call
   const params: Record<string, string> = {};
@@ -46,20 +55,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (sort) params.sort = sort;
 
   const base = "http://localhost:3002";
-  const { profiles, total, facets } = await getData(params, base);
-
-  // Build active filter chips
-  const activeFilters: { label: string; href: string }[] = [];
-  if (q) activeFilters.push({ label: `"${q}"`, href: removeParam("q") });
-  if (type) activeFilters.push({ label: `${type}`, href: removeParam("type") });
-  if (types) {
-    types.split(",").forEach((t) => {
-      const remaining = types.split(",").filter((x) => x !== t).join(",");
-      activeFilters.push({ label: t, href: remaining ? setParam("types", remaining) : removeParam("types") });
-    });
-  }
-  if (category) activeFilters.push({ label: `Category: ${category}`, href: removeParam("category") });
-  if (system) activeFilters.push({ label: `System: ${system}`, href: removeParam("system") });
+  const { profiles, total, facets } = await getData(params, limit, base);
 
   function removeParam(key: string) {
     const p = new URLSearchParams(params);
@@ -72,112 +68,48 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     return `/search?${p.toString()}`;
   }
 
+  // The current search as removable chips
+  const activeFilters: { label: string; href: string }[] = [];
+  if (q) activeFilters.push({ label: `"${q}"`, href: removeParam("q") });
+  if (type) activeFilters.push({ label: type, href: removeParam("type") });
+  if (types) {
+    types.split(",").forEach((t) => {
+      const remaining = types.split(",").filter((x) => x !== t).join(",");
+      activeFilters.push({ label: t, href: remaining ? setParam("types", remaining) : removeParam("types") });
+    });
+  }
+  if (category) activeFilters.push({ label: facets.categories.find((c) => c.slug === category)?.name ?? category, href: removeParam("category") });
+  if (system) activeFilters.push({ label: TYPING_SYSTEMS.find((s) => s.slug === system)?.name ?? system, href: removeParam("system") });
+
+  const newHref = `/create${q ? `?name=${encodeURIComponent(q)}` : ""}`;
+  const aside =
+    total === 0 ? (q ? `No file matches "${q}"` : "No files on record") : profiles.length >= total ? `${count(total, "file")}, showing all` : `${count(total, "file")}, showing ${profiles.length}`;
+
   return (
-    <div className="flex gap-6">
-      {/* Sidebar Filters */}
-      <aside className="hidden lg:block w-60 shrink-0 space-y-6">
-        <SearchFilters
-          currentQ={q}
-          currentCategory={category}
-          currentType={type}
-          currentTypes={types}
-          currentSystem={system}
-          currentSort={sort}
-          facets={facets}
-        />
-      </aside>
+    <div>
+      <PageTitle title="Browse the files" aside={aside} />
+      <div className="grid gap-7 md:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="flex flex-col gap-[22px]">
+          <ThisSearch filters={activeFilters} />
+          <SearchFilters currentQ={q} currentCategory={category} currentType={type} currentTypes={types} currentSystem={system} currentSort={sort} facets={facets} />
+        </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 min-w-0 space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-xl font-bold text-[#e8ecf4]">
-            {q ? `"${q}"` : "Browse Profiles"}
-          </h1>
-          <span className="text-sm text-[#4a5a70]">{total.toLocaleString()} results</span>
+        <div className="flex min-w-0 flex-col">
+          <SortTabs sort={sort} hrefFor={(key) => setParam("sort", key)} newHref={newHref} />
+          <FileSheet
+            profiles={profiles}
+            empty={
+              <>
+                No file matches that.{" "}
+                <Link href={newHref} className="underline">
+                  Open a new file{q ? ` for "${q}"` : ""}
+                </Link>
+                .
+              </>
+            }
+          />
+          {total > profiles.length && <ShowMore href={setParam("limit", String(Math.min(MAX_LIMIT, limit + PAGE)))} n={Math.min(PAGE, total - profiles.length)} />}
         </div>
-
-        {/* Sort Bar */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-[#4a5a70]">Sort by:</span>
-          {["views", "recent", "name"].map((s) => (
-            <Link
-              key={s}
-              href={setParam("sort", s)}
-              className={`px-2 py-1 rounded transition-colors ${
-                sort === s
-                  ? "bg-[#64ffda]/20 text-[#64ffda]"
-                  : "text-[#7888a0] hover:text-[#c8d0dc]"
-              }`}
-            >
-              {s === "views" ? "Most Viewed" : s === "recent" ? "Newest" : "Name"}
-            </Link>
-          ))}
-        </div>
-
-        {/* Active Filters */}
-        {activeFilters.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {activeFilters.map((f) => (
-              <Link
-                key={f.label}
-                href={f.href}
-                className="flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 transition-colors"
-              >
-                {f.label}
-                <span className="ml-0.5">×</span>
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Mobile Filter Toggle */}
-        <details className="lg:hidden">
-          <summary className="text-sm text-[#64ffda] cursor-pointer">Filters</summary>
-          <div className="mt-3">
-            <SearchFilters
-              currentQ={q}
-              currentCategory={category}
-              currentType={type}
-              currentTypes={types}
-              currentSystem={system}
-              currentSort={sort}
-              facets={facets}
-            />
-          </div>
-        </details>
-
-        {/* Results */}
-        {profiles.length === 0 ? (
-          <div className="text-center py-16 text-[#4a5a70]">
-            <div className="text-4xl mb-4">🔍</div>
-            <p className="text-lg">No profiles found for "{q || "this search"}"</p>
-            <p className="text-sm mt-1">Be the first to add it to the database.</p>
-            <Link
-              href={`/create${q ? `?name=${encodeURIComponent(q)}` : ""}`}
-              className="inline-block mt-6 px-6 py-3 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 transition-colors font-semibold"
-            >
-              ✚ Add "{q || "a Profile"}"
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-[#4a5a70]">Showing {profiles.length} of {total}</span>
-              <Link
-                href={`/create${q ? `?name=${encodeURIComponent(q)}` : ""}`}
-                className="text-xs text-[#64ffda] hover:underline"
-              >
-                ✚ Add new
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {profiles.map((p: { name: string; slug: string; imageUrl: string | null; description: string | null; category: { name: string; slug: string } | null; typings: { typingSystem: { name: string; slug: string }; typeValue: string; confidence: number }[] }) => (
-                <ProfileCard key={p.slug} {...p} />
-              ))}
-            </div>
-          </>
-        )}
       </div>
     </div>
   );
