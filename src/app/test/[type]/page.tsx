@@ -1,23 +1,30 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { use, useState } from "react";
 import { MBTI_QUESTIONS, ENNEAGRAM_QUESTIONS, scoreMBTI, scoreEnneagram } from "@/lib/tests";
+import { TYPING_SYSTEMS } from "@/lib/typing-systems";
+import { Btn, PageTitle, Sheet, Stamp, Typed } from "@/components/dossier";
+
+const NAMES: Record<string, string> = { mbti: "MBTI", enneagram: "Enneagram" };
+
+/** The result's name and description from the system definitions ("INTJ, The Architect"; an Enneagram wing result looks up its core type). */
+function describeResult(type: string, result: string): { title: string; text: string } | null {
+  const sys = TYPING_SYSTEMS.find((s) => s.slug === type);
+  const value = type === "enneagram" ? result.split("w")[0] : result;
+  const t = sys?.types?.find((x) => x.value === value);
+  if (!t) return null;
+  return { title: t.label.replace(" — ", ", "), text: t.description ?? "" };
+}
 
 export default function TestPage({ params }: { params: Promise<{ type: string }> }) {
-  const [type, setType] = useState<string>("");
+  const { type } = use(params);
+  const known = type === "mbti" || type === "enneagram";
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
-  // Set type from params
-  useState(() => {
-    params.then((p) => setType(p.type));
-  });
-
-  const questions = type === "enneagram" ? ENNEAGRAM_QUESTIONS : MBTI_QUESTIONS;
   const isEnneagram = type === "enneagram";
+  const questions = isEnneagram ? ENNEAGRAM_QUESTIONS : MBTI_QUESTIONS;
   const totalQuestions = questions.length;
 
   const handleAnswer = (qId: number, value: string) => {
@@ -43,119 +50,92 @@ export default function TestPage({ params }: { params: Promise<{ type: string }>
     setLoading(false);
   };
 
-  if (!type) {
+  if (!known) {
     return (
-      <div className="max-w-lg mx-auto py-12 space-y-4 text-center">
-        <h1 className="text-xl font-bold text-[#e8ecf4]">Personality Tests</h1>
-        <p className="text-sm text-[#7888a0]">Discover your personality type with our quick tests.</p>
-        <div className="space-y-3 pt-4">
-          <button
-            onClick={() => setType("mbti")}
-            className="block w-full px-4 py-3 rounded border border-[#1a2234] bg-[#0e1420] text-sm text-[#c8d0dc] hover:border-[#64ffda]/40 transition-colors"
-          >
-            MBTI Test — 16 questions
-          </button>
-          <button
-            onClick={() => setType("enneagram")}
-            className="block w-full px-4 py-3 rounded border border-[#1a2234] bg-[#0e1420] text-sm text-[#c8d0dc] hover:border-[#64ffda]/40 transition-colors"
-          >
-            Enneagram Test — 9 questions
-          </button>
+      <div className="pb-10">
+        <PageTitle title="Tests" aside="No such test on file." />
+        <div className="max-w-[560px]">
+          <Sheet className="flex flex-col gap-4">
+            <Typed className="text-[14px]">Two tests are on file.</Typed>
+            <div className="flex flex-wrap gap-3">
+              <Btn href="/test/mbti">MBTI test</Btn>
+              <Btn href="/test/enneagram">Enneagram test</Btn>
+            </div>
+          </Sheet>
         </div>
       </div>
     );
   }
 
   if (result) {
+    const described = describeResult(type, result);
     return (
-      <div className="max-w-lg mx-auto py-12 space-y-6 text-center">
-        <h1 className="text-xl font-bold text-[#e8ecf4]">Your Result</h1>
-        <div className="p-8 rounded-lg border border-[#64ffda]/30 bg-[#0e1420]">
-          <div className="text-4xl font-bold text-[#64ffda] mb-2">{result}</div>
-          <p className="text-sm text-[#7888a0]">
-            {isEnneagram ? "Your Enneagram type" : "Your MBTI type"}
-          </p>
-        </div>
-        <div className="flex gap-3 justify-center">
-          <button
-            onClick={() => { setResult(null); setAnswers({}); setStep(0); }}
-            className="px-4 py-2 text-sm rounded border border-[#1a2234] text-[#7888a0] hover:bg-[#1a2234]"
-          >
-            Retake
-          </button>
-          <button
-            onClick={() => router.push(`/search?type=${result}&system=${type}`)}
-            className="px-4 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20"
-          >
-            Browse {result} profiles
-          </button>
+      <div className="pb-10">
+        <PageTitle title={`${NAMES[type]} test`} aside="Your result" />
+        <div className="max-w-[720px]">
+          <Sheet className="flex flex-col gap-6">
+            <div className="flex justify-center py-6">
+              <Stamp code={result} line="YOUR RESULT" className="relative left-0 top-0" />
+            </div>
+            {described && (
+              <div className="flex flex-col gap-1 border-t-2 border-ink pt-4">
+                <span className="lab">{described.title}</span>
+                <Typed className="text-[15px] leading-[1.5]">{described.text}</Typed>
+              </div>
+            )}
+            <div className="flex flex-col-reverse gap-3 border-t-2 border-ink pt-[18px] sm:flex-row sm:justify-end">
+              <Btn onClick={() => { setResult(null); setAnswers({}); setStep(0); }}>Retake</Btn>
+              <Btn variant="primary" href={`/search?type=${encodeURIComponent(result)}&system=${type}`}>
+                Browse {result} files
+              </Btn>
+            </div>
+          </Sheet>
         </div>
       </div>
     );
   }
 
   const question = questions[step];
-  const progress = ((step) / totalQuestions) * 100;
+  const answered = Object.keys(answers).length;
+  const left = totalQuestions - answered;
 
   return (
-    <div className="max-w-lg mx-auto py-12 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-[#e8ecf4]">
-          {isEnneagram ? "Enneagram" : "MBTI"} Test
-        </h1>
-        <span className="text-sm text-[#4a5a70]">{step + 1}/{totalQuestions}</span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="w-full h-1 bg-[#1a2234] rounded-full overflow-hidden">
-        <div className="h-full bg-[#64ffda] transition-all duration-300 rounded-full" style={{ width: `${progress}%` }} />
-      </div>
-
-      {/* Question */}
-      <div className="p-6 rounded-lg border border-[#1a2234] bg-[#0e1420]">
-        <p className="text-base text-[#e8ecf4] mb-6">{question.text}</p>
-        <div className="space-y-2">
-          {question.options.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => handleAnswer(question.id, opt.value)}
-              className={`w-full text-left px-4 py-3 rounded border text-sm transition-colors ${
-                answers[question.id] === opt.value
-                  ? "border-[#64ffda]/40 bg-[#64ffda]/10 text-[#64ffda]"
-                  : "border-[#1a2234] bg-[#141c2b] text-[#c8d0dc] hover:border-[#2a3a4a]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex justify-between">
-        <button
-          onClick={() => setStep(Math.max(0, step - 1))}
-          disabled={step === 0}
-          className="px-4 py-2 text-sm rounded border border-[#1a2234] text-[#7888a0] hover:bg-[#1a2234] disabled:opacity-30"
-        >
-          Back
-        </button>
-        {step === totalQuestions - 1 ? (
-          <button
-            onClick={handleSubmit}
-            disabled={loading || Object.keys(answers).length < totalQuestions}
-            className="px-4 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 disabled:opacity-30"
-          >
-            {loading ? "Calculating..." : "See Results"}
-          </button>
-        ) : (
-          <button
-            onClick={() => setStep(step + 1)}
-            className="px-4 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20"
-          >
-            Skip
-          </button>
-        )}
+    <div className="pb-10">
+      <PageTitle title={`${NAMES[type]} test`} aside={`Question ${step + 1} of ${totalQuestions}`} />
+      <div className="max-w-[720px]">
+        <Sheet className="flex flex-col gap-5">
+          <div className="h-1 w-full bg-paper-2" aria-hidden="true">
+            <div className="h-1 bg-blue" style={{ width: `${(step / totalQuestions) * 100}%` }} />
+          </div>
+          <h2 className="font-display text-[28px] font-extrabold uppercase leading-[1.05] md:text-[33px]">{question.text}</h2>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="sr-only">Your answer</legend>
+            {question.options.map((opt) => {
+              const on = answers[question.id] === opt.value;
+              return (
+                <label key={opt.value} className={`flex min-h-[44px] cursor-pointer items-center gap-3 px-4 py-[10px] text-[15px] ${on ? "bg-navy text-paper" : "row-fill hover:bg-steel/40"}`}>
+                  <input type="radio" name={`question-${question.id}`} value={opt.value} checked={on} onChange={() => handleAnswer(question.id, opt.value)} className="h-4 w-4 accent-blue" />
+                  {opt.label}
+                </label>
+              );
+            })}
+          </fieldset>
+          <div className="flex flex-col-reverse gap-3 border-t-2 border-ink pt-[18px] sm:flex-row sm:justify-between">
+            <Btn onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>Back</Btn>
+            {step === totalQuestions - 1 ? (
+              <Btn variant="primary" onClick={handleSubmit} disabled={loading || answered < totalQuestions}>
+                {loading ? "Scoring" : "See the result"}
+              </Btn>
+            ) : (
+              <Btn variant="primary" onClick={() => setStep(step + 1)}>Next</Btn>
+            )}
+          </div>
+          {step === totalQuestions - 1 && left > 0 && (
+            <Typed>
+              {left} {left === 1 ? "question is" : "questions are"} still unanswered. Go back and answer {left === 1 ? "it" : "them"} to score the test.
+            </Typed>
+          )}
+        </Sheet>
       </div>
     </div>
   );

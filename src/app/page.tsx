@@ -68,7 +68,7 @@ function boardRow(p: BoardSource): BoardRow {
   return {
     ...base,
     system: { name: top.name, slug: top.slug },
-    chips: ranked.slice(0, 3).map((r) => ({ code: r.code, systemSlug: top.slug, systemName: top.name })),
+    chips: [...ranked.map((r) => ({ code: r.code, systemSlug: top.slug, systemName: top.name })), ...chips.filter((c) => c.systemSlug !== top.slug)].slice(0, 3),
     lead,
     runner,
     readers: top.readers.size,
@@ -263,7 +263,7 @@ export default async function HomePage() {
 
       {/* Streaks and the daily challenge (signed-in readers only; the component decides) */}
       <div className="max-w-[420px] pb-10">
-        <StreaksAndChallenges />
+        <StreaksAndChallenges quiet />
       </div>
 
       <footer className="mt-auto border-t border-navy pb-6 pt-[18px] font-typed text-[12px] tracking-[0.04em] text-paper/45">

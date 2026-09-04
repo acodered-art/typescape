@@ -1,41 +1,29 @@
-import Link from "next/link";
+import { Btn, PageTitle, Sheet, Typed } from "@/components/dossier";
+import { ENNEAGRAM_QUESTIONS, MBTI_QUESTIONS } from "@/lib/tests";
+
+const TESTS = [
+  { slug: "mbti", name: "MBTI", questions: MBTI_QUESTIONS.length, minutes: "two to three minutes", line: "Four letters, as in INFP or ENTJ." },
+  { slug: "enneagram", name: "Enneagram", questions: ENNEAGRAM_QUESTIONS.length, minutes: "one to two minutes", line: "A core type with its wing, as in 4w5 or 7w8." },
+];
 
 export default function TestIndexPage() {
   return (
-    <div className="max-w-lg mx-auto py-12 space-y-6">
-      <div className="text-center">
-        <h1 className="text-xl font-bold text-[#e8ecf4]">Personality Tests</h1>
-        <p className="text-sm text-[#7888a0] mt-1">
-          Discover your personality type. Quick, free, no account required.
-        </p>
-      </div>
-      <div className="space-y-3">
-        <Link
-          href="/test/mbti"
-          className="block p-4 rounded-lg border border-[#1a2234] bg-[#0e1420] hover:border-[#64ffda]/40 transition-colors"
-        >
-          <h2 className="text-base font-semibold text-[#c8d0dc]">MBTI Test</h2>
-          <p className="text-sm text-[#7888a0] mt-1">16 questions · 2-3 minutes</p>
-          <p className="text-xs text-[#4a5a70] mt-1">Discover your 4-letter personality type (INFP, ENTJ, etc.)</p>
-          <div className="flex flex-wrap gap-1 mt-2">
-            {["ISTJ", "ENFP", "INTJ", "INFP", "ENTP", "INFJ"].map((t) => (
-              <span key={t} className="px-2 py-0.5 text-xs rounded bg-[#2a3f6e] text-[#8ab4f8]">{t}</span>
-            ))}
-          </div>
-        </Link>
-        <Link
-          href="/test/enneagram"
-          className="block p-4 rounded-lg border border-[#1a2234] bg-[#0e1420] hover:border-[#64ffda]/40 transition-colors"
-        >
-          <h2 className="text-base font-semibold text-[#c8d0dc]">Enneagram Test</h2>
-          <p className="text-sm text-[#7888a0] mt-1">9 questions · 1-2 minutes</p>
-          <p className="text-xs text-[#4a5a70] mt-1">Find your core Enneagram type with wing (4w5, 7w8, etc.)</p>
-          <div className="flex flex-wrap gap-1 mt-2">
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((t) => (
-              <span key={t} className="px-2 py-0.5 text-xs rounded bg-[#3a2a4e] text-[#d4a0f8]">{t}</span>
-            ))}
-          </div>
-        </Link>
+    <div className="pb-10">
+      <PageTitle title="Tests" aside="Quick, free, no account needed." />
+      <div className="max-w-[720px]">
+        <Sheet className="flex flex-col gap-[14px]">
+          {TESTS.map((t) => (
+            <div key={t.slug} className="row-fill flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-1">
+                <span className="font-display text-[33px] font-extrabold uppercase leading-none">{t.name}</span>
+                <Typed className="text-[14px]">
+                  {t.questions} questions, {t.minutes}. {t.line}
+                </Typed>
+              </div>
+              <Btn href={`/test/${t.slug}`} className="shrink-0">Take the test</Btn>
+            </div>
+          ))}
+        </Sheet>
       </div>
     </div>
   );
