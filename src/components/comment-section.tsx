@@ -1,5 +1,9 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { Btn, SectionHead, Typed } from "@/components/dossier";
+import { FormNote } from "@/components/dossier/modal";
+import { useReaderHandle } from "@/components/dossier/reader";
 
 interface CommentUser {
   username: string;
@@ -20,18 +24,46 @@ interface CommentSectionProps {
   profileSlug: string;
 }
 
+/** "3 days ago", spelled out; the file is a record, not a feed. */
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} ${months === 1 ? "month" : "months"} ago`;
+  const years = Math.floor(days / 365);
+  return `${years} ${years === 1 ? "year" : "years"} ago`;
 }
 
+function Chevron({ up, size }: { up: boolean; size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+      <path d={up ? "M5 15l7-7 7 7" : "M5 9l7 7 7-7"} />
+    </svg>
+  );
+}
+
+function Triangle({ up, size }: { up: boolean; size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d={up ? "M12 6l8 9H4z" : "M12 18l-8-9h16z"} />
+    </svg>
+  );
+}
+
+/**
+ * The notes on a file. The composer comes first; notes sit on a 44px vote gutter (the reader's own vote is a
+ * filled blue triangle), signed with the handle and the time, replies on a steel thread line. Top-level notes
+ * are ordered most agreed first, replies stay in the order they were filed.
+ */
 export function CommentSection({ profileSlug }: CommentSectionProps) {
+  const me = useReaderHandle();
   const [comments, setComments] = useState<CommentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
@@ -39,6 +71,7 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [myVotes, setMyVotes] = useState<Record<string, number>>({});
+  const [note, setNote] = useState("");
 
   const fetchComments = useCallback(async () => {
     try {
@@ -50,8 +83,18 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
   }, [profileSlug]);
 
   useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/profiles/${profileSlug}/comments`);
+        if (cancelled) return;
+        if (res.ok) setComments(await res.json());
+      } catch {} finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [profileSlug]);
 
   const handleVote = async (commentId: string, voteValue: 1 | -1) => {
     const prevVote = myVotes[commentId] || 0;
@@ -95,6 +138,7 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
       });
       if (!res.ok) {
         setMyVotes((v) => ({ ...v, [commentId]: prevVote }));
+        if (res.status === 401) setNote("Sign in to vote on a note.");
         fetchComments();
       }
     } catch {
@@ -106,6 +150,7 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
   const submitComment = async (body: string, parentId?: string | null) => {
     if (!body.trim()) return;
     setSubmitting(true);
+    setNote("");
     try {
       const res = await fetch(`/api/profiles/${profileSlug}/comments`, {
         method: "POST",
@@ -119,122 +164,122 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
         fetchComments();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to post comment");
+        setNote(res.status === 401 ? "Sign in to file a note." : data.error || "That note did not go through.");
       }
     } catch {
-      alert("Failed to post comment");
+      setNote("That note did not go through.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const renderComment = (comment: CommentData, isReply = false) => {
+  const gutter = (comment: CommentData, size: number) => {
     const myVote = myVotes[comment.id];
-
     return (
-      <div key={comment.id} className={`${isReply ? "ml-4 mt-2" : ""} p-3 rounded border border-[#1a2234] bg-[#0e1420]`}>
-        <div className="flex items-center gap-2 text-xs text-[#7888a0] mb-1">
-          <span className="text-[#c8d0dc] font-medium">
-            {comment.user.username || "anonymous"}
-          </span>
-          <span>{timeAgo(comment.createdAt)}</span>
-          {comment.user.reputation > 0 && (
-            <span className="text-[#64ffda]">{comment.user.reputation} rep</span>
-          )}
-        </div>
-        <p className="text-sm text-[#c8d0dc] whitespace-pre-wrap">{comment.body}</p>
-        <div className="flex items-center gap-2 mt-1">
-          <button
-            onClick={() => handleVote(comment.id, 1)}
-            className={`text-xs px-1.5 py-0.5 rounded transition-colors ${
-              myVote === 1 ? "bg-[#64ffda]/20 text-[#64ffda]" : "text-[#4a5a70] hover:text-[#64ffda]"
-            }`}
-            title="Upvote"
-          >
-            ▲
-          </button>
-          <span className="text-xs text-[#7888a0] min-w-[1.5rem] text-center">{comment.voteCount}</span>
-          <button
-            onClick={() => handleVote(comment.id, -1)}
-            className={`text-xs px-1.5 py-0.5 rounded transition-colors ${
-              myVote === -1 ? "bg-[#ff6b6b]/20 text-[#ff6b6b]" : "text-[#4a5a70] hover:text-[#ff6b6b]"
-            }`}
-            title="Downvote"
-          >
-            ▼
-          </button>
-          {!isReply && (
-            <button
-              onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
-              className="text-xs text-[#4a5a70] hover:text-[#64ffda] ml-2 transition-colors"
-            >
-              Reply
-            </button>
-          )}
-        </div>
-
-        {/* Reply form */}
-        {replyTo === comment.id && (
-          <div className="flex gap-2 mt-2 ml-4">
-            <input
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Write a reply..."
-              className="flex-1 px-2 py-1 text-xs bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40"
-            />
-            <button
-              onClick={() => submitComment(replyText, comment.id)}
-              disabled={submitting || !replyText.trim()}
-              className="px-2 py-1 text-xs rounded bg-[#64ffda]/10 text-[#64ffda] disabled:opacity-30"
-            >
-              {submitting ? "..." : "Reply"}
-            </button>
-          </div>
-        )}
-
-        {/* Replies */}
-        {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-2 space-y-2">
-            {comment.replies.map((reply) => renderComment(reply, true))}
-          </div>
-        )}
+      <div className={`flex flex-col items-center gap-[1px] ${myVote ? "text-blue" : "text-navy"}`}>
+        <button type="button" onClick={() => handleVote(comment.id, 1)} className="hover:text-blue" aria-pressed={myVote === 1} title="Agree with this note">
+          {myVote === 1 ? <Triangle up size={size} /> : <Chevron up size={size} />}
+        </button>
+        <span className="font-typed text-[14px] font-bold">{comment.voteCount}</span>
+        <button type="button" onClick={() => handleVote(comment.id, -1)} className="hover:text-blue" aria-pressed={myVote === -1} title="Disagree with this note">
+          {myVote === -1 ? <Triangle up={false} size={size} /> : <Chevron up={false} size={size} />}
+        </button>
       </div>
     );
   };
 
-  return (
-    <div className="space-y-4">
-      <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider">
-        Comments ({comments.length})
-      </h2>
-
-      {/* New Comment Form */}
-      <div className="flex gap-2">
-        <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment... (sign in required)"
-          rows={2}
-          className="flex-1 px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40 resize-none"
-        />
-        <button
-          onClick={() => submitComment(newComment)}
-          disabled={submitting || !newComment.trim()}
-          className="px-3 py-2 text-xs rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 disabled:opacity-30 transition-colors self-end"
-        >
-          {submitting ? "..." : "Post"}
-        </button>
-      </div>
-
-      {/* Comments List */}
-      {loading ? (
-        <p className="text-sm text-[#4a5a70]">Loading comments...</p>
-      ) : comments.length === 0 ? (
-        <p className="text-sm text-[#4a5a70] italic">No comments yet.</p>
-      ) : (
-        <div className="space-y-3">
-          {comments.map((comment) => renderComment(comment))}
+  const renderComment = (comment: CommentData, isReply = false, last = false) => (
+    <div key={comment.id} className={`grid ${isReply ? "grid-cols-[36px_minmax(0,1fr)] gap-3 pb-3 pt-[14px]" : "grid-cols-[44px_minmax(0,1fr)] gap-[14px] pb-4 pt-[18px]"} ${last ? "" : "border-b border-paper-2"}`}>
+      {gutter(comment, isReply ? 16 : 18)}
+      <div className="flex min-w-0 flex-col gap-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-[10px] font-typed">
+            <Link href={`/user/${comment.user.username}`} className="text-[14px] font-bold text-ink hover:text-blue">
+              {comment.user.username || "anonymous"}
+            </Link>
+            <span className="text-[12px] text-steel-2">
+              {comment.user.reputation === 0 ? "new reader, " : ""}
+              {timeAgo(comment.createdAt)}
+            </span>
+          </div>
+          {!isReply && (
+            <button type="button" onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)} className="font-typed text-[12px] font-bold tracking-[0.1em] text-blue hover:text-navy">
+              {replyTo === comment.id ? "CLOSE" : "REPLY"}
+            </button>
+          )}
         </div>
+        <p className="max-w-[620px] whitespace-pre-wrap text-[15px] leading-[1.55]">{comment.body}</p>
+
+        {replyTo === comment.id && (
+          <form
+            className="flex flex-col gap-2 sm:flex-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitComment(replyText, comment.id);
+            }}
+          >
+            <input value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder={me ? `Reply as ${me}` : "Sign in to reply"} className="input-paper" />
+            <Btn type="submit" variant="small" disabled={submitting || !replyText.trim()} className="shrink-0 self-start px-3 py-[9px]">
+              {submitting ? "Filing" : "File reply"}
+            </Btn>
+          </form>
+        )}
+
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="mt-1 flex flex-col border-l border-steel pl-[18px]">
+            {comment.replies.map((reply, i) => renderComment(reply, true, i === comment.replies!.length - 1))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const ordered = [...comments].sort((a, b) => b.voteCount - a.voteCount);
+
+  return (
+    <div className="flex flex-col gap-[14px]">
+      <SectionHead title="Discussion" aside={comments.length > 1 ? "Most agreed first" : undefined} />
+
+      <form
+        className="flex flex-col gap-[10px] border border-steel px-[18px] pb-[14px] pt-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submitComment(newComment);
+        }}
+      >
+        <label className="flex flex-col gap-[10px]">
+          <span className="lab">Your note</span>
+          <textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Cite a scene or an exhibit. Your handle is signed underneath."
+            rows={3}
+            className="ruled min-h-[66px] w-full resize-y bg-transparent text-[15px] text-ink outline-none placeholder:text-steel-2"
+          />
+        </label>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Typed>
+            {me ? (
+              `Signed ${me}`
+            ) : (
+              <>
+                <Link href="/auth/signin" className="underline">Sign in</Link> to file a note.
+              </>
+            )}
+          </Typed>
+          <Btn type="submit" variant="primary" disabled={submitting || !newComment.trim()} className="text-[17px]">
+            {submitting ? "Filing" : "File note"}
+          </Btn>
+        </div>
+        {note && <FormNote error>{note}</FormNote>}
+      </form>
+
+      {loading ? (
+        <Typed>Opening the notes.</Typed>
+      ) : ordered.length === 0 ? (
+        <Typed className="text-[14px]">No notes on this file yet. File the first one.</Typed>
+      ) : (
+        <div className="flex flex-col">{ordered.map((comment, i) => renderComment(comment, false, i === ordered.length - 1))}</div>
       )}
     </div>
   );

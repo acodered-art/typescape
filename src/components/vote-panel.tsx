@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { calcConsensus } from "@/lib/utils";
 import { getCorrelations } from "@/lib/correlations";
 import { Btn, EmptySlot, InkTag, SectionHead, SegBar, Typed, bySystemOrder } from "@/components/dossier";
@@ -235,5 +235,39 @@ export function VotePanel({ profileSlug, initial, mode = "summary" }: { profileS
         );
       })}
     </div>
+  );
+}
+
+/** The findings rail beside the discussion: one block per system with the key share, the runner-up, readers, DISPUTED. */
+export function FindingsRail({ typings, children }: { typings: TypingRead[]; children?: ReactNode }) {
+  const systems = groupBySystem(typings);
+  return (
+    <aside className="flex flex-col gap-3">
+      <SectionHead size={20} title="On the table" />
+      {[...systems.entries()].map(([slug, list]) => {
+        const r = rankSystem(list);
+        const name = list[0].typingSystem.name;
+        const certified = r.readers >= CERTIFIED_AT;
+        return (
+          <div key={slug} className={`flex flex-col gap-[5px] px-[10px] py-[9px] ${certified ? "row-fill" : "dashed"}`}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className={`font-display text-[15px] font-bold uppercase tracking-[0.08em] ${certified ? "" : "text-navy"}`}>{name}</span>
+              {r.disputed && <InkTag>Disputed</InkTag>}
+            </div>
+            <Typed className="leading-[1.45]">
+              {certified ? (
+                <>
+                  <span className="font-bold text-blue">{r.lead.t.typeValue} {r.lead.pct}%</span>
+                  {r.runner && ` ${r.runner.t.typeValue} ${r.runner.pct}%`}. {count(r.readers, "reader")}.
+                </>
+              ) : (
+                `${r.lead.t.typeValue}, ${r.readers === 0 ? "no reads yet" : count(r.readers, "reader")}. Needs ${CERTIFIED_AT - r.readers} more.`
+              )}
+            </Typed>
+          </div>
+        );
+      })}
+      {children}
+    </aside>
   );
 }

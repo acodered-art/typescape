@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { calcConsensus } from "@/lib/utils";
-import { VotePanel, type TypingRead } from "@/components/vote-panel";
+import { FindingsRail, VotePanel, type TypingRead } from "@/components/vote-panel";
 import { CommentSection } from "@/components/comment-section";
 import { EvidencePanel } from "@/components/evidence-panel";
 import { AddToCollectionInline } from "@/components/add-to-collection";
@@ -260,12 +260,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
       {typings.length === 0 ? (
         <Typed className="text-[14px]">No reads on this file yet, so nothing to file evidence against. Add your read first.</Typed>
       ) : (
-        typings.map((t) => (
-          <div key={t.id} className="flex flex-col gap-3">
-            <SectionHead size={20} title={<>{t.typeValue} <span className="font-normal text-steel-2">{t.typingSystem.name}</span></>} />
-            <EvidencePanel typingId={t.id} />
-          </div>
-        ))
+        typings.map((t) => <EvidencePanel key={t.id} typingId={t.id} code={t.typeValue} systemName={t.typingSystem.name} subject={profile.name} certified={t.votes.length >= 5} />)
       )}
     </>
   );
@@ -273,7 +268,14 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   const discussion = (
     <>
       {strip}
-      <CommentSection profileSlug={profile.slug} />
+      <div className="grid gap-9 md:grid-cols-[minmax(0,1fr)_260px]">
+        <CommentSection profileSlug={profile.slug} />
+        {typings.length > 0 && (
+          <FindingsRail typings={typings}>
+            <TabLink to="findings" className="self-start font-typed text-[13px] text-blue underline hover:text-navy">Open the Findings tab</TabLink>
+          </FindingsRail>
+        )}
+      </div>
     </>
   );
 
