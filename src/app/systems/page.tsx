@@ -63,6 +63,8 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
   const system = known.find((s) => s.slug === wanted) ?? known.find((s) => s.slug === "mbti") ?? known[0];
   const { fullName, basis } = splitDescription(system);
   const types = (system.types ?? []) as Option[];
+  /** A system whose types carry a real paragraph (the Naranjogram subtypes) lists them with the text; the rest print as a grid of codes. */
+  const described = types.some((t) => (t.description?.length ?? 0) > 80);
   const dimensions = ("dimensions" in system ? system.dimensions : undefined) as Dimension[] | undefined;
   const pairs = dimensions?.filter((d) => d.options.length === 2) ?? [];
   const scales = dimensions?.filter((d) => d.options.length !== 2) ?? [];
@@ -173,7 +175,31 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
             </Section>
           )}
 
-          {types.length > 0 && (
+          {types.length > 0 && described && (
+            <Section>
+              <SectionHead title="Types" aside={`${count(types.length, "type")}. Files in the archive per type.`} />
+              <div className="flex flex-col gap-[10px]">
+                {types.map((t) => {
+                  const n = byType?.get(t.value)?.size ?? 0;
+                  const name = t.label.split(" — ")[1] ?? "";
+                  return (
+                    <div key={t.value} className={`flex flex-col gap-2 px-4 py-3 ${n > 0 ? "row-fill" : "dashed"}`}>
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <Link href={`/search?type=${encodeURIComponent(t.value)}&system=${system.slug}`} className="font-typed text-[22px] font-bold text-ink hover:text-navy">
+                          {t.value}
+                        </Link>
+                        {name && <span className="font-display text-[19px] font-bold uppercase tracking-[0.06em] text-navy">{name}</span>}
+                        <span className={`ml-auto font-typed text-[12px] ${n > 0 ? "text-navy" : "text-steel-2"}`}>{n > 0 ? count(n, "file") : "no files yet"}</span>
+                      </div>
+                      <p className="max-w-[720px] text-[14px] leading-[1.5]">{t.description}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </Section>
+          )}
+
+          {types.length > 0 && !described && (
             <Section>
               <SectionHead title="Types" aside={`${count(types.length, "type")}. Files in the archive per type.`} />
               <div className="grid grid-cols-2 gap-[10px] md:grid-cols-4">
