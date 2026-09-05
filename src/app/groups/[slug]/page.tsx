@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { auth } from "@/lib/session";
+import { Btn, InkTag, PageTitle, Section, SectionHead, Sheet, Typed } from "@/components/dossier";
 import { GroupDetailClient } from "./group-detail-client";
 
 interface GroupData {
@@ -39,10 +41,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 async function getGroup(slug: string): Promise<GroupData | null> {
   const base = "http://localhost:3002";
   try {
-    const res = await fetch(`${base}/api/groups/${slug}`, { cache: "no-store" });
+    // The reader's cookies go along, or the API cannot say whether they are a member.
+    const res = await fetch(`${base}/api/groups/${slug}`, { cache: "no-store", headers: { cookie: (await cookies()).toString() } });
     if (!res.ok) return null;
     return res.json();
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 async function getPosts(slug: string): Promise<PostData[]> {
@@ -58,12 +63,16 @@ function timeAgo(dateStr: string): string {
   const s = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (s < 60) return "just now";
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return `${m} ${m === 1 ? "minute" : "minutes"} ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return `${h} ${h === 1 ? "hour" : "hours"} ago`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? "yesterday" : `${d} days ago`;
 }
 
+const count = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
+
+/** A group: members as typed handles, posts as notes with the reply count in the gutter, the join control on the desk. */
 export default async function GroupPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [group, posts] = await Promise.all([getGroup(slug), getPosts(slug)]);
@@ -74,97 +83,76 @@ export default async function GroupPage({ params }: { params: Promise<{ slug: st
   const isAdmin = group.myMembership?.role === "admin" || group.creator.id === session?.user?.id;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex gap-4 items-start">
-        <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold shrink-0 bg-[#141c2b] border border-[#1a2234]">
-          {group.icon || group.name.charAt(0).toUpperCase()}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-[#e8ecf4]">{group.name}</h1>
-            <span className="text-xs px-1.5 py-0.5 rounded bg-[#1a2234] text-[#4a5a70]">
-              {CATEGORY_LABELS[group.category] || group.category}
-            </span>
-          </div>
-          {group.description && (
-            <p className="text-sm text-[#7888a0] mt-1">{group.description}</p>
-          )}
-          <div className="flex items-center gap-3 text-xs text-[#4a5a70] mt-1">
-            <span>by <Link href={`/user/${group.creator.username}`} className="text-[#64ffda] hover:underline">{group.creator.username}</Link></span>
-            <span>{group.memberCount} member{group.memberCount !== 1 ? "s" : ""}</span>
-            <span>{group.postCount} post{group.postCount !== 1 ? "s" : ""}</span>
-          </div>
-        </div>
+    <div className="pb-10">
+      <PageTitle
+        title={group.name}
+        aside={
+          <>
+            {CATEGORY_LABELS[group.category] || group.category}. Opened by{" "}
+            <Link href={`/user/${group.creator.username}`} className="text-blue underline hover:text-paper">{group.creator.username}</Link>.{" "}
+            {count(group.memberCount, "member")}, {count(group.postCount, "post")}.
+          </>
+        }
+      >
         <GroupDetailClient slug={group.slug} isMember={isMember} isAdmin={isAdmin} />
-      </div>
+      </PageTitle>
 
-      {/* Members */}
-      <details className="text-sm">
-        <summary className="text-xs text-[#7888a0] cursor-pointer hover:text-[#c8d0dc]">
-          Members ({group.members.length})
-        </summary>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {group.members.map((m) => (
-            <Link
-              key={m.id}
-              href={`/user/${m.user.username}`}
-              className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#141c2b] border border-[#1a2234] text-xs hover:border-[#2a3a4a] transition-colors"
-            >
-              <span className="text-[#c8d0dc]">{m.user.username}</span>
-              {m.role !== "member" && (
-                <span className="text-[10px] text-[#64ffda]">{m.role}</span>
-              )}
-            </Link>
-          ))}
-        </div>
-      </details>
+      <Sheet className="flex flex-col gap-[22px]">
+        {group.description && <p className="max-w-[680px] text-[15px] leading-[1.55]">{group.description}</p>}
 
-      {/* Posts */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider">Posts</h2>
-          {isMember && (
-            <Link
-              href={`/groups/${group.slug}/post/new`}
-              className="text-xs px-2 py-1 rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20"
-            >
-              + New Post
-            </Link>
+        <div className="flex flex-col gap-2">
+          <span className="lab">Members</span>
+          {group.members.length === 0 ? (
+            <Typed>No members yet.</Typed>
+          ) : (
+            <Typed className="leading-[1.7]">
+              {group.members.map((m, i) => (
+                <span key={m.id}>
+                  {i > 0 && ", "}
+                  <Link href={`/user/${m.user.username}`} className="underline">{m.user.username}</Link>
+                  {m.role !== "member" && <span className="text-steel-2"> ({m.role})</span>}
+                </span>
+              ))}
+            </Typed>
           )}
         </div>
 
-        {posts.length === 0 ? (
-          <p className="text-sm text-[#4a5a70] italic">
-            {isMember ? "No posts yet. Start the discussion!" : "No posts yet in this group."}
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {posts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/groups/${group.slug}/post/${post.id}`}
-                className="block p-4 rounded-lg border border-[#1a2234] bg-[#0e1420] hover:border-[#2a3a4a] transition-colors"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-[#c8d0dc]">
-                      {post.pinOrder > 0 && <span className="text-[#64ffda] mr-1">📌</span>}
-                      {post.title}
-                    </h3>
-                    <p className="text-xs text-[#7888a0] mt-1 line-clamp-2">{post.body}</p>
+        <Section>
+          <SectionHead title="Posts" aside={posts.length > 0 ? `${posts.length} on file` : "None yet"} />
+          {isMember && (
+            <div className="flex">
+              <Btn href={`/groups/${group.slug}/post/new`} variant="small">+ New post</Btn>
+            </div>
+          )}
+          {posts.length === 0 ? (
+            <Typed className="text-[14px]">{isMember ? "No posts yet. File the first one." : "No posts yet in this group."}</Typed>
+          ) : (
+            <div className="flex flex-col">
+              {posts.map((post, i) => (
+                <div key={post.id} className={`grid grid-cols-[44px_minmax(0,1fr)] gap-[14px] pb-4 pt-[18px] ${i < posts.length - 1 ? "border-b border-paper-2" : ""}`}>
+                  <div className="flex flex-col items-center text-navy">
+                    <span className="font-typed text-[14px] font-bold">{post._count.replies}</span>
+                    <span className="font-typed text-[9px] tracking-[0.1em]">{post._count.replies === 1 ? "REPLY" : "REPLIES"}</span>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-2">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <Link href={`/groups/${group.slug}/post/${post.id}`} className="font-display text-[22px] font-extrabold uppercase leading-none text-ink hover:text-navy">
+                        {post.title}
+                      </Link>
+                      {post.pinOrder > 0 && <InkTag rotate={-2}>Pinned</InkTag>}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-[10px] font-typed">
+                      <Link href={`/user/${post.user.username}`} className="text-[14px] font-bold text-ink hover:text-blue">{post.user.username}</Link>
+                      <span className="text-[12px] text-steel-2">{timeAgo(post.createdAt)}</span>
+                    </div>
+                    <p className="line-clamp-2 max-w-[620px] text-[15px] leading-[1.55]">{post.body}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-[#4a5a70] mt-2">
-                  <span className="text-[#64ffda]">{post.user.username}</span>
-                  <span>{timeAgo(post.createdAt)}</span>
-                  <span>{post._count.replies} repl{post._count.replies !== 1 ? "ies" : "y"}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+              ))}
+            </div>
+          )}
+        </Section>
+      </Sheet>
     </div>
   );
 }

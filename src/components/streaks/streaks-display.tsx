@@ -1,5 +1,7 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { InkTag, NavyCard } from "@/components/dossier";
+import { useReaderHandle } from "@/components/dossier/reader";
 
 interface StreakData {
   streakType: string;
@@ -14,70 +16,67 @@ interface ChallengeData {
   completed: boolean;
 }
 
-export function StreaksAndChallenges() {
+/**
+ * The reader's login streak and the day's challenge as navy cards on the desk.
+ * Signed out it prompts to sign in; signed in with nothing on file it says so. With `quiet` either case renders nothing.
+ */
+export function StreaksAndChallenges({ quiet = false }: { quiet?: boolean }) {
   const [streaks, setStreaks] = useState<StreakData[]>([]);
   const [challenge, setChallenge] = useState<ChallengeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const me = useReaderHandle();
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [sRes, cRes] = await Promise.all([
-        fetch("/api/streaks"),
-        fetch("/api/daily-challenge"),
-      ]);
-      if (sRes.ok) setStreaks(await sRes.json());
-      if (cRes.ok) {
-        const data = await cRes.json();
-        if (data && data.challenge) setChallenge(data);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [sRes, cRes] = await Promise.all([fetch("/api/streaks"), fetch("/api/daily-challenge")]);
+        if (cancelled) return;
+        if (sRes.ok) setStreaks(await sRes.json());
+        if (cRes.ok) {
+          const data = await cRes.json();
+          if (data && data.challenge) setChallenge(data);
+        }
+      } catch {} finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {} finally {
-      setLoading(false);
-    }
+    })();
+    return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   const loginStreak = streaks.find((s) => s.streakType === "daily_login");
 
   if (loading) return null;
 
-  return (
-    <div className="space-y-3">
-      {/* Streak Display */}
-      {loginStreak && (
-        <div className="p-3 rounded border border-[#1a2234] bg-[#0e1420]">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[#7888a0] uppercase tracking-wider">Login Streak</span>
-            <div className="flex items-center gap-1">
-              <span className="text-lg font-bold text-[#64ffda]">{loginStreak.count}</span>
-              <span className="text-xs text-[#4a5a70]">days</span>
-            </div>
-          </div>
-        </div>
-      )}
+  if (!loginStreak && !challenge) {
+    if (quiet) return null;
+    return (
+      <NavyCard title="Streaks and challenges">
+        {me ? "No streak on file yet. Each day you sign in adds to one, and the day's challenge appears here when one is posted." : "Sign in to keep a login streak and take the daily challenge."}
+      </NavyCard>
+    );
+  }
 
-      {/* Daily Challenge */}
+  return (
+    <div className="flex flex-col gap-3">
+      {loginStreak && (
+        <NavyCard title="Login streak">
+          <span className="block py-1 font-typed text-[28px] font-bold leading-none text-paper">{loginStreak.count}</span>
+          {loginStreak.count === 1 ? "day" : "days"} in a row.
+        </NavyCard>
+      )}
       {challenge && (
-        <div className="p-3 rounded border border-[#1a2234] bg-[#0e1420]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-[#7888a0] uppercase tracking-wider">Daily Challenge</span>
-            {challenge.completed && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-[#64ffda]/20 text-[#64ffda]">Done!</span>
-            )}
-          </div>
-          <h3 className="text-sm font-medium text-[#c8d0dc]">{challenge.challenge.title}</h3>
-          <p className="text-xs text-[#7888a0] mt-0.5">{challenge.challenge.description}</p>
-          <div className="mt-2 flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-[#1a2234] rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#64ffda] rounded-full transition-all"
-                style={{ width: `${Math.min(100, (challenge.progress / challenge.target) * 100)}%` }}
-              />
-            </div>
-            <span className="text-xs text-[#4a5a70]">{challenge.progress}/{challenge.target}</span>
-          </div>
-          <div className="mt-1 text-[10px] text-[#4a5a70]">Reward: {challenge.challenge.reward} rep</div>
-        </div>
+        <NavyCard title="Daily challenge">
+          <span className="block text-[14px] text-paper">{challenge.challenge.title}</span>
+          {challenge.challenge.description}
+          <span className="mt-2 block h-1 w-full bg-paper/20" aria-hidden="true">
+            <span className="block h-1 bg-blue" style={{ width: `${Math.min(100, (challenge.progress / challenge.target) * 100)}%` }} />
+          </span>
+          <span className="mt-1 block">
+            {challenge.progress} of {challenge.target}. Reward {challenge.challenge.reward} reputation.
+          </span>
+          {challenge.completed && <InkTag className="mt-2">Done</InkTag>}
+        </NavyCard>
       )}
     </div>
   );

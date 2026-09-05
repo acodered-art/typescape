@@ -1,11 +1,15 @@
 "use client";
 import { useState } from "react";
+import { Btn, Typed } from "@/components/dossier";
+import { FormNote, Modal } from "@/components/dossier/modal";
 
+/** The control on the portrait: hover shows a typed label, the modal takes an image address for a moderator to review. */
 export function UploadImageButton({ profileSlug, currentImage }: { profileSlug: string; currentImage?: string | null }) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const submitted = message.startsWith("Portrait submitted");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +24,7 @@ export function UploadImageButton({ profileSlug, currentImage }: { profileSlug: 
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage("Image submitted! An admin will review it shortly.");
+        setMessage("Portrait submitted. A moderator will look at it shortly.");
         setUrl("");
         setTimeout(() => { setOpen(false); setMessage(""); window.location.reload(); }, 2000);
       } else {
@@ -35,61 +39,28 @@ export function UploadImageButton({ profileSlug, currentImage }: { profileSlug: 
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/40 transition-colors group rounded-lg"
-        title="Upload image"
-      >
-        <span className="opacity-0 group-hover:opacity-100 text-xs text-white bg-black/60 px-2 py-1 rounded">
-          {currentImage ? "Change" : "Add photo"}
+      <button type="button" onClick={() => setOpen(true)} className="group absolute inset-0 flex items-end justify-center pb-2" title={currentImage ? "Change the portrait" : "Add a portrait"}>
+        <span className="bg-ink/75 px-2 py-1 font-typed text-[11px] font-bold tracking-[0.1em] text-paper opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+          {currentImage ? "CHANGE" : "ADD PORTRAIT"}
         </span>
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setOpen(false)}>
-          <div
-            className="w-full max-w-md p-6 rounded-lg border border-[#1a2234] bg-[#0e1420] mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-sm font-semibold text-[#e8ecf4] mb-1">Upload Profile Image</h3>
-            <p className="text-xs text-[#7888a0] mb-4">Paste a URL to an image. It will be reviewed by an admin before appearing.</p>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="block text-xs text-[#7888a0] mb-1">Image URL</label>
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com/character.jpg"
-                  required
-                  className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40"
-                />
-              </div>
-              {message && (
-                <div className={`p-2 text-xs rounded border ${message.includes("submitted") ? "bg-[#64ffda]/10 text-[#64ffda] border-[#64ffda]/20" : "bg-[#ff6b6b]/10 text-[#ff6b6b] border-[#ff6b6b]/20"}`}>
-                  {message}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="flex-1 px-3 py-2 text-sm rounded border border-[#1a2234] text-[#7888a0] hover:bg-[#1a2234] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || !url.trim()}
-                  className="flex-1 px-3 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 disabled:opacity-30 transition-colors"
-                >
-                  {loading ? "..." : "Submit for Review"}
-                </button>
-              </div>
-            </form>
+      <Modal open={open} onClose={() => setOpen(false)} title="Portrait">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Typed className="text-[14px]">Paste the address of an image. A moderator checks it before it shows on the file.</Typed>
+          <label className="flex flex-col gap-1">
+            <span className="lab">Image address</span>
+            <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/portrait.jpg" required className="input-paper" />
+          </label>
+          {message && <FormNote error={!submitted}>{message}</FormNote>}
+          <div className="flex justify-end gap-3 pt-2">
+            <Btn onClick={() => setOpen(false)}>Cancel</Btn>
+            <Btn type="submit" variant="primary" disabled={loading || !url.trim()}>
+              {loading ? "Submitting" : "Submit for review"}
+            </Btn>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </>
   );
 }

@@ -1,27 +1,22 @@
 import { auth } from "@/lib/session";
+import { Btn, PageTitle, Sheet, Typed } from "@/components/dossier";
 import AdminDashboard from "./admin-client";
 
+/** The admin desk. Anyone else sees a sheet saying so. */
 export default async function AdminPage() {
   const session = await auth();
   const isAdmin = session?.user?.role === "admin";
 
   if (!isAdmin) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16 space-y-4">
-        <h1 className="text-xl font-bold text-[#e8ecf4]">Admin Panel</h1>
-        <p className="text-sm text-[#7888a0]">
-          {session?.user
-            ? "You don't have admin access. Contact the site administrator."
-            : "Sign in with an admin account to access the admin panel."}
-        </p>
-        {!session?.user && (
-          <a
-            href="/auth/signin"
-            className="inline-block px-4 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 transition-colors"
-          >
-            Sign in
-          </a>
-        )}
+      <div className="pb-10">
+        <PageTitle title="Admin" />
+        <div className="max-w-[560px]">
+          <Sheet className="flex flex-col items-start gap-4">
+            <Typed className="text-[14px]">{session?.user ? "This desk is for site administrators. Ask one if you need something moderated." : "Sign in with an administrator's account to open this desk."}</Typed>
+            {!session?.user && <Btn variant="primary" href="/auth/signin">Sign in</Btn>}
+          </Sheet>
+        </div>
       </div>
     );
   }

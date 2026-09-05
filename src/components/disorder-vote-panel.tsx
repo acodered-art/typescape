@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Typed } from "@/components/dossier";
+import { FormNote } from "@/components/dossier/modal";
 
 interface Disorder {
   id: string;
@@ -33,12 +35,13 @@ interface Comorbidity {
 }
 
 const CLUSTER_LABELS: Record<string, string> = {
-  A: "Cluster A — Odd/Eccentric",
-  B: "Cluster B — Dramatic/Emotional",
-  C: "Cluster C — Anxious/Fearful",
-  none: "Other",
+  A: "Cluster A, odd or eccentric",
+  B: "Cluster B, dramatic or emotional",
+  C: "Cluster C, anxious or fearful",
+  none: "Other patterns",
 };
 
+/** Readers file a pattern directly: one vote per reader per file, toggled off by voting the same pattern again. */
 export function DisorderVotePanel({ profileSlug }: { profileSlug: string }) {
   const [disorders, setDisorders] = useState<Disorder[]>([]);
   const [voteData, setVoteData] = useState<VoteData | null>(null);
@@ -100,12 +103,12 @@ export function DisorderVotePanel({ profileSlug }: { profileSlug: string }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setMessage(data.action === "removed" ? "Vote removed" : "Vote saved");
+        setMessage(data.action === "removed" ? "Vote withdrawn." : "Vote filed.");
         fetchAll();
         setTimeout(() => setMessage(""), 2000);
       } else {
         const data = await res.json();
-        setMessage(data.error || "Failed");
+        setMessage(res.status === 401 ? "Sign in to file a pattern." : data.error || "Failed");
       }
     } catch {
       setMessage("Network error");
@@ -114,7 +117,6 @@ export function DisorderVotePanel({ profileSlug }: { profileSlug: string }) {
     }
   };
 
-  // Group disorders by cluster
   const grouped = disorders.reduce((acc, d) => {
     const key = d.cluster || "none";
     if (!acc[key]) acc[key] = [];
@@ -122,153 +124,70 @@ export function DisorderVotePanel({ profileSlug }: { profileSlug: string }) {
     return acc;
   }, {} as Record<string, Disorder[]>);
 
-  // Build a lookup for breakdown percentages
   const breakdownMap = new Map<string, VoteBreakdown>();
   voteData?.breakdown.forEach((b) => breakdownMap.set(b.disorderId, b));
 
-  if (loading) {
-    return (
-      <section className="p-4 rounded-lg border border-[#1a2234] bg-[#0e1420]">
-        <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider mb-3">
-          Cluster Disorder Voting
-        </h2>
-        <p className="text-xs text-[#4a5a70]">Loading disorders...</p>
-      </section>
-    );
-  }
+  if (loading) return <Typed>Opening the patterns.</Typed>;
+
+  const failed = message === "Failed" || message === "Network error" || message.startsWith("Sign in");
 
   return (
-    <section className="p-4 rounded-lg border border-[#1a2234] bg-[#0e1420]">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider">
-          Cluster Disorder Voting
-        </h2>
-        <div className="flex items-center gap-2">
-          {voteData && (
-            <span className="text-xs text-[#4a5a70]">{voteData.totalVotes} vote{voteData.totalVotes !== 1 ? "s" : ""}</span>
-          )}
-          {comorbidities.length > 0 && (
-            <button
-              onClick={() => setShowGraph(!showGraph)}
-              className="text-xs text-[#64ffda] hover:underline"
-            >
-              {showGraph ? "Hide graph" : "Co-morbidity"}
-            </button>
-          )}
-        </div>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <Typed className="text-[14px]">
+          {voteData && voteData.totalVotes > 0 ? `${voteData.totalVotes} ${voteData.totalVotes === 1 ? "reader has" : "readers have"} filed a pattern directly.` : "No pattern filed directly yet. Mark the one that fits."}
+        </Typed>
+        {comorbidities.length > 0 && (
+          <button type="button" onClick={() => setShowGraph(!showGraph)} className="font-typed text-[13px] text-blue underline hover:text-navy">
+            {showGraph ? "Hide the co-morbidity table" : "Co-morbidity table"}
+          </button>
+        )}
       </div>
 
-      {message && (
-        <div className="mb-3 text-xs px-2 py-1 rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20">
-          {message}
-        </div>
-      )}
+      {message && <FormNote error={failed}>{message}</FormNote>}
 
-      {/* Co-morbidity Graph */}
       {showGraph && comorbidities.length > 0 && (
-        <div className="mb-4 p-3 rounded border border-[#1a2234] bg-[#141c2b]">
-          <h3 className="text-xs font-semibold text-[#7888a0] uppercase tracking-wider mb-2">
-            Co-morbidity Network
-          </h3>
-          <div className="space-y-1.5">
-            {comorbidities.map((c) => (
-              <div key={c.id} className="flex items-center gap-2 text-xs">
-                <span className={`px-1.5 py-0.5 rounded text-[10px] ${
-                  c.disorderA.cluster === "A" ? "bg-[#2a3f6e] text-[#8ab4f8]" :
-                  c.disorderA.cluster === "B" ? "bg-[#6b2a2a] text-[#ff6b6b]" :
-                  c.disorderA.cluster === "C" ? "bg-[#2a4a3e] text-[#7ddfc0]" :
-                  "bg-[#1a2234] text-[#4a5a70]"
-                }`}>
-                  {c.disorderA.name.split(" ")[0]}
-                </span>
-                <span className="text-[#4a5a70]">↔</span>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] ${
-                  c.disorderB.cluster === "A" ? "bg-[#2a3f6e] text-[#8ab4f8]" :
-                  c.disorderB.cluster === "B" ? "bg-[#6b2a2a] text-[#ff6b6b]" :
-                  c.disorderB.cluster === "C" ? "bg-[#2a4a3e] text-[#7ddfc0]" :
-                  "bg-[#1a2234] text-[#4a5a70]"
-                }`}>
-                  {c.disorderB.name.split(" ")[0]}
-                </span>
-                <span className="text-[#4a5a70] ml-auto">{Math.round(c.strength * 100)}%</span>
-              </div>
-            ))}
-          </div>
+        <div className="row-fill flex flex-col gap-1 px-3 py-3">
+          <span className="lab">Patterns that travel together</span>
+          {comorbidities.map((c) => (
+            <div key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_44px] items-baseline gap-2 font-typed text-[13px]" title={c.description ?? undefined}>
+              <span className="truncate">{c.disorderA.name}</span>
+              <span className="text-steel-2">with</span>
+              <span className="truncate">{c.disorderB.name}</span>
+              <span className="text-right font-bold text-navy">{Math.round(c.strength * 100)}%</span>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Disorders by Cluster */}
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         {Object.entries(grouped).map(([cluster, clusterDisorders]) => (
-          <div key={cluster}>
-            <h3 className="text-xs font-semibold text-[#4a5a70] uppercase tracking-wider mb-2">
-              {CLUSTER_LABELS[cluster] || cluster}
-            </h3>
-            <div className="space-y-1">
-              {clusterDisorders.map((d) => {
-                const breakdown = breakdownMap.get(d.id);
-                const isMyVote = voteData?.myVote?.disorderId === d.id;
-                const barColor = cluster === "A" ? "bg-[#8ab4f8]" : cluster === "B" ? "bg-[#ff6b6b]" : cluster === "C" ? "bg-[#7ddfc0]" : "bg-[#4a5a70]";
-
-                return (
-                  <div
-                    key={d.id}
-                    className={`flex items-center gap-2 px-3 py-2 rounded border text-sm transition-colors ${
-                      isMyVote
-                        ? "border-[#64ffda]/40 bg-[#64ffda]/10"
-                        : "border-[#1a2234] bg-[#141c2b] hover:border-[#2a3a4a]"
-                    }`}
-                  >
-                    {/* Vote button */}
-                    <button
-                      onClick={() => handleVote(d.id)}
-                      disabled={voting}
-                      className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                        isMyVote
-                          ? "border-[#64ffda] bg-[#64ffda]/20"
-                          : "border-[#2a3a4a] hover:border-[#64ffda]/40"
-                      }`}
-                      title={isMyVote ? `Remove vote for ${d.name}` : `Vote ${d.name}`}
-                    >
-                      {isMyVote && <span className="w-2 h-2 rounded-full bg-[#64ffda]" />}
-                    </button>
-
-                    {/* Name */}
-                    <span className="text-xs text-[#c8d0dc] min-w-[8rem]">{d.name}</span>
-
-                    {/* Percentage bar */}
-                    <div className="flex-1 h-3 bg-[#0a0e17] rounded-full overflow-hidden relative">
-                      {breakdown && breakdown.percentage > 0 && (
-                        <div
-                          className={`h-full ${barColor} rounded-full transition-all`}
-                          style={{ width: `${breakdown.percentage}%` }}
-                        />
-                      )}
-                    </div>
-
-                    {/* Percentage label */}
-                    <span className="text-xs text-[#7888a0] w-10 text-right shrink-0">
-                      {breakdown ? `${breakdown.percentage}%` : "—"}
-                    </span>
-
-                    {/* Vote count */}
-                    <span className="text-[10px] text-[#4a5a70] w-6 text-right shrink-0">
-                      {breakdown ? breakdown.count : 0}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+          <div key={cluster} className="flex flex-col gap-[6px]">
+            <span className="lab">{CLUSTER_LABELS[cluster] || cluster}</span>
+            {clusterDisorders.map((d) => {
+              const breakdown = breakdownMap.get(d.id);
+              const isMyVote = voteData?.myVote?.disorderId === d.id;
+              const pct = breakdown?.percentage ?? 0;
+              return (
+                <div key={d.id} className="grid grid-cols-[18px_minmax(0,1fr)_44px] items-center gap-3 text-[14px] md:grid-cols-[18px_180px_minmax(0,1fr)_44px_60px]">
+                  <button
+                    type="button"
+                    onClick={() => handleVote(d.id)}
+                    disabled={voting}
+                    aria-pressed={isMyVote}
+                    className={`h-[14px] w-[14px] border ${isMyVote ? "border-blue bg-blue" : "border-navy hover:bg-paper-2"}`}
+                    title={isMyVote ? `Withdraw your vote for ${d.name}` : `File ${d.name}`}
+                  />
+                  <span className={`truncate ${isMyVote ? "font-semibold" : ""}`} title={d.description ?? undefined}>{d.name}</span>
+                  <div className="hidden h-2 bg-paper-2 md:block">{pct > 0 && <div className="h-2 bg-blue" style={{ width: `${pct}%` }} />}</div>
+                  <span className={`text-right font-typed text-[13px] font-bold ${isMyVote ? "text-blue" : "text-navy"}`}>{breakdown ? `${pct}%` : ""}</span>
+                  <span className="hidden text-right font-typed text-[12px] text-steel-2 md:block">{breakdown && breakdown.count > 0 ? `${breakdown.count} ${breakdown.count === 1 ? "vote" : "votes"}` : ""}</span>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
-
-      {/* Empty state */}
-      {voteData && voteData.totalVotes === 0 && (
-        <p className="text-xs text-[#4a5a70] italic mt-3 text-center">
-          No votes yet. Click the circle next to a disorder to cast your vote.
-        </p>
-      )}
-    </section>
+    </div>
   );
 }

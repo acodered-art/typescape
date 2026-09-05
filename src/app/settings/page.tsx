@@ -1,8 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Btn, PageTitle, Portrait, Sheet, Typed } from "@/components/dossier";
+import { FormNote } from "@/components/dossier/modal";
 
+type Me = { id: string; username: string; email: string | null; bio: string | null; avatarUrl: string | null };
+
+/** "Edit file": the reader's own notes and portrait on a sheet; handle and email are printed, not editable. */
 export default function SettingsPage() {
-  const [user, setUser] = useState<{ id: string; username: string; email: string | null; bio: string | null; avatarUrl: string | null } | null>(null);
+  const [user, setUser] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -11,17 +16,22 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/me")
-      .then((r) => r.json())
-      .then((d) => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/me");
+        const d = await res.json();
+        if (cancelled) return;
         if (d.user) {
           setUser(d.user);
           setBio(d.user.bio || "");
           setAvatarUrl(d.user.avatarUrl || "");
         }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      } catch {} finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -36,11 +46,11 @@ export default function SettingsPage() {
         body: JSON.stringify({ bio: bio.trim(), avatarUrl: avatarUrl.trim() || null }),
       });
       if (res.ok) {
-        setMessage("Settings saved!");
+        setMessage("File saved.");
         setTimeout(() => setMessage(""), 3000);
       } else {
         const d = await res.json();
-        setError(d.error || "Failed to save");
+        setError(d.error || "That did not save.");
       }
     } catch {
       setError("Network error");
@@ -49,73 +59,47 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) return <p className="text-sm text-[#4a5a70] p-4">Loading...</p>;
-  if (!user) {
-    return (
-      <div className="max-w-lg mx-auto text-center py-16">
-        <h1 className="text-xl font-bold text-[#e8ecf4]">Settings</h1>
-        <p className="text-sm text-[#7888a0] mt-2">Sign in to edit your profile.</p>
-        <a href="/auth/signin" className="inline-block mt-4 px-4 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20">
-          Sign in
-        </a>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-lg mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-[#e8ecf4]">Settings</h1>
-
-      <form onSubmit={handleSave} className="space-y-4">
-        {message && (
-          <div className="p-3 text-xs rounded border border-[#64ffda]/40 bg-[#64ffda]/10 text-[#64ffda]">{message}</div>
-        )}
-        {error && (
-          <div className="p-3 text-xs rounded border border-[#ff6b6b]/40 bg-[#ff6b6b]/10 text-[#ff6b6b]">{error}</div>
-        )}
-
-        <div className="p-4 rounded border border-[#1a2234] bg-[#0e1420] space-y-3">
-          <h2 className="text-sm font-semibold text-[#c8d0dc]">Profile</h2>
-
-          <div>
-            <label className="block text-xs text-[#7888a0] mb-1">Username</label>
-            <input type="text" value={user.username} disabled
-              className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#4a5a70] cursor-not-allowed" />
-          </div>
-
-          <div>
-            <label className="block text-xs text-[#7888a0] mb-1">Email</label>
-            <input type="email" value={user.email || ""} disabled
-              className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#4a5a70] cursor-not-allowed" />
-          </div>
-
-          <div>
-            <label className="block text-xs text-[#7888a0] mb-1">Avatar URL</label>
-            <input type="url" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/avatar.jpg"
-              className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40" />
-            {avatarUrl && (
-              <div className="mt-2 w-12 h-12 rounded-full overflow-hidden bg-[#1a2234]">
-                <img src={avatarUrl} alt="preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+    <div className="pb-10">
+      <PageTitle title="Edit file" aside={user ? `Reader file for ${user.username}` : undefined} />
+      <div className="max-w-[560px]">
+        <Sheet className="flex flex-col gap-5">
+          {loading ? (
+            <Typed>Opening your file.</Typed>
+          ) : !user ? (
+            <div className="flex flex-col items-start gap-4">
+              <Typed className="text-[14px]">Sign in to edit your file.</Typed>
+              <Btn variant="primary" href="/auth/signin">Sign in</Btn>
+            </div>
+          ) : (
+            <form onSubmit={handleSave} className="grid grid-cols-[96px_minmax(0,1fr)] items-baseline gap-x-3 gap-y-4">
+              <div className="lab">Reader</div>
+              <div className="ln text-[16px]">{user.username}</div>
+              <div className="lab">Email</div>
+              <div className="ln text-[16px]">{user.email || "none on file"}</div>
+              <label htmlFor="avatar" className="lab">Portrait</label>
+              <div className="flex flex-col gap-2">
+                <input id="avatar" type="url" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://example.com/portrait.jpg" className="input-paper" />
+                {avatarUrl && <Portrait src={avatarUrl} alt="Portrait preview" w={56} h={68} />}
               </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs text-[#7888a0] mb-1">Bio</label>
-            <textarea value={bio} onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell us about yourself..."
-              rows={3} maxLength={500}
-              className="w-full px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40 resize-none" />
-            <p className="text-xs text-[#4a5a70] mt-1">{bio.length}/500</p>
-          </div>
-        </div>
-
-        <button type="submit" disabled={saving}
-          className="w-full px-4 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 disabled:opacity-30 transition-colors">
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </form>
+              <label htmlFor="bio" className="lab self-start pt-2">Notes</label>
+              <div className="flex flex-col gap-1">
+                <textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="How you read, what you argue about, what to ask you." rows={4} maxLength={500} className="input-paper resize-y" />
+                <Typed className="text-[12px] text-steel-2">{bio.length} of 500</Typed>
+              </div>
+              <div className="col-span-2 flex flex-col gap-3 border-t-2 border-ink pt-4">
+                {message && <FormNote>{message}</FormNote>}
+                {error && <FormNote error>{error}</FormNote>}
+                <div className="flex justify-end">
+                  <Btn type="submit" variant="primary" disabled={saving}>
+                    {saving ? "Saving" : "Save"}
+                  </Btn>
+                </div>
+              </div>
+            </form>
+          )}
+        </Sheet>
+      </div>
     </div>
   );
 }

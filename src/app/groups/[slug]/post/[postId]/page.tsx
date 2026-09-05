@@ -1,6 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { Btn, PageTitle, Section, SectionHead, Sheet, Typed } from "@/components/dossier";
+import { FormNote } from "@/components/dossier/modal";
+import { useReaderHandle } from "@/components/dossier/reader";
 
 interface PostUser {
   id: string;
@@ -29,26 +32,26 @@ function timeAgo(dateStr: string): string {
   const s = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (s < 60) return "just now";
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return `${m} ${m === 1 ? "minute" : "minutes"} ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return `${h} ${h === 1 ? "hour" : "hours"} ago`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? "yesterday" : `${d} days ago`;
 }
 
+/** One post on paper with its replies as notes and the composer under them. */
 export default function PostPage({ params }: { params: Promise<{ slug: string; postId: string }> }) {
-  const [slug, setSlug] = useState("");
-  const [postId, setPostId] = useState("");
+  const { slug, postId } = use(params);
+  const me = useReaderHandle();
   const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useState(() => { params.then((p) => { setSlug(p.slug); setPostId(p.postId); }); });
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!slug || !postId) return;
       try {
         const res = await fetch(`/api/groups/${slug}/posts/${postId}`);
         if (!cancelled && res.ok) setPost(await res.json());
@@ -59,9 +62,11 @@ export default function PostPage({ params }: { params: Promise<{ slug: string; p
     return () => { cancelled = true; };
   }, [slug, postId]);
 
-  const handleReply = async () => {
+  const handleReply = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!replyText.trim()) return;
     setSubmitting(true);
+    setNote("");
     try {
       const res = await fetch(`/api/groups/${slug}/posts/${postId}/replies`, {
         method: "POST",
@@ -74,74 +79,95 @@ export default function PostPage({ params }: { params: Promise<{ slug: string; p
         if (refetch.ok) setPost(await refetch.json());
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to reply");
+        setNote(res.status === 401 ? "Sign in to reply." : res.status === 403 ? "Join the group to reply." : data.error || "That reply did not go through.");
       }
     } catch {
-      alert("Network error");
+      setNote("Network error");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <p className="text-sm text-[#4a5a70] p-4">Loading post...</p>;
-  if (!post) return <p className="text-sm text-[#ff6b6b] p-4">Post not found.</p>;
+  if (loading) {
+    return (
+      <div className="pb-10">
+        <PageTitle title="Post" />
+        <Sheet><Typed>Opening the post.</Typed></Sheet>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="pb-10">
+        <PageTitle title="Post" />
+        <div className="max-w-[560px]">
+          <Sheet className="flex flex-col gap-3">
+            <div className="font-display text-[48px] font-extrabold uppercase leading-none">No such post.</div>
+            <Typed className="text-[14px]">
+              <Link href={`/groups/${slug}`} className="underline">Back to the group</Link>.
+            </Typed>
+          </Sheet>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Post */}
-      <div className="p-4 rounded-lg border border-[#1a2234] bg-[#0e1420]">
-        <div className="flex items-center gap-2 text-xs text-[#4a5a70] mb-2">
-          <Link href={`/user/${post.user.username}`} className="text-[#64ffda] hover:underline font-medium">
-            {post.user.username}
-          </Link>
-          <span>{timeAgo(post.createdAt)}</span>
-        </div>
-        <h1 className="text-base font-bold text-[#e8ecf4] mb-2">{post.title}</h1>
-        <p className="text-sm text-[#c8d0dc] whitespace-pre-wrap leading-relaxed">{post.body}</p>
-      </div>
+    <div className="pb-10">
+      <PageTitle
+        title={post.title}
+        aside={
+          <>
+            Filed by <Link href={`/user/${post.user.username}`} className="text-blue underline hover:text-paper">{post.user.username}</Link>, {timeAgo(post.createdAt)}.{" "}
+            <Link href={`/groups/${slug}`} className="text-blue underline hover:text-paper">Back to the group</Link>.
+          </>
+        }
+      />
+      <div className="max-w-[860px]">
+        <Sheet className="flex flex-col gap-[22px]">
+          <p className="max-w-[680px] whitespace-pre-wrap text-[15px] leading-[1.6]">{post.body}</p>
 
-      {/* Replies */}
-      <section>
-        <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider mb-3">
-          Replies ({post.replies.length})
-        </h2>
-
-        <div className="space-y-2">
-          {post.replies.length === 0 ? (
-            <p className="text-sm text-[#4a5a70] italic">No replies yet. Be the first!</p>
-          ) : (
-            post.replies.map((reply) => (
-              <div key={reply.id} className="p-3 rounded border border-[#1a2234] bg-[#0e1420]">
-                <div className="flex items-center gap-2 text-xs text-[#4a5a70] mb-1">
-                  <Link href={`/user/${reply.user.username}`} className="text-[#64ffda] hover:underline font-medium">
-                    {reply.user.username}
-                  </Link>
-                  <span>{timeAgo(reply.createdAt)}</span>
-                </div>
-                <p className="text-sm text-[#c8d0dc] whitespace-pre-wrap">{reply.body}</p>
+          <Section>
+            <SectionHead title="Replies" aside={post.replies.length > 0 ? `${post.replies.length} on file` : "None yet"} />
+            {post.replies.length === 0 ? (
+              <Typed className="text-[14px]">No replies yet. File the first one.</Typed>
+            ) : (
+              <div className="flex flex-col">
+                {post.replies.map((reply, i) => (
+                  <div key={reply.id} className={`flex flex-col gap-2 pb-4 pt-[14px] ${i < post.replies.length - 1 ? "border-b border-paper-2" : ""}`}>
+                    <div className="flex flex-wrap items-center gap-[10px] font-typed">
+                      <Link href={`/user/${reply.user.username}`} className="text-[14px] font-bold text-ink hover:text-blue">{reply.user.username}</Link>
+                      <span className="text-[12px] text-steel-2">{timeAgo(reply.createdAt)}</span>
+                    </div>
+                    <p className="max-w-[620px] whitespace-pre-wrap text-[15px] leading-[1.55]">{reply.body}</p>
+                  </div>
+                ))}
               </div>
-            ))
-          )}
-        </div>
+            )}
 
-        {/* Reply Form */}
-        <div className="mt-4 flex gap-2">
-          <textarea
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            placeholder="Write a reply..."
-            rows={2}
-            className="flex-1 px-3 py-2 text-sm bg-[#141c2b] border border-[#1a2234] rounded text-[#c8d0dc] placeholder-[#4a5a70] focus:outline-none focus:border-[#64ffda]/40 resize-none"
-          />
-          <button
-            onClick={handleReply}
-            disabled={submitting || !replyText.trim()}
-            className="shrink-0 px-4 py-2 text-sm rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20 disabled:opacity-30 self-end"
-          >
-            {submitting ? "..." : "Reply"}
-          </button>
-        </div>
-      </section>
+            <form onSubmit={handleReply} className="mt-2 flex flex-col gap-[10px] border border-steel px-[18px] pb-[14px] pt-4">
+              <label className="flex flex-col gap-[10px]">
+                <span className="lab">Your reply</span>
+                <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Add to the thread." rows={3} className="ruled min-h-[66px] w-full resize-y bg-transparent text-[15px] text-ink outline-none placeholder:text-steel-2" />
+              </label>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Typed>
+                  {me ? `Signed ${me}` : (
+                    <>
+                      <Link href="/auth/signin" className="underline">Sign in</Link> to reply.
+                    </>
+                  )}
+                </Typed>
+                <Btn type="submit" variant="primary" disabled={submitting || !replyText.trim()} className="text-[17px]">
+                  {submitting ? "Filing" : "File reply"}
+                </Btn>
+              </div>
+              {note && <FormNote error>{note}</FormNote>}
+            </form>
+          </Section>
+        </Sheet>
+      </div>
     </div>
   );
 }
