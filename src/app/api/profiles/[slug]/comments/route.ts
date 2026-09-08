@@ -56,10 +56,12 @@ export async function GET(
   // achieve.
   const shape = (c: (typeof comments)[number] | (typeof comments)[number]["replies"][number]) => {
     const removed = "isRemoved" in c && c.isRemoved;
+    const locked = "isLocked" in c && c.isLocked;
     return {
       ...c,
       body: removed ? "[removed by a moderator]" : c.body,
       isRemoved: removed,
+      isLocked: locked,
       voteCount: removed ? 0 : c.voteCount,
     };
   };
@@ -111,14 +113,18 @@ export async function POST(
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  // If replying, verify parent exists and belongs to same profile
+  // If replying, verify the parent exists, belongs to this profile, and is not
+  // locked. A lock that does not stop replies would be cosmetic.
   if (parentId) {
     const parent = await prisma.comment.findUnique({
       where: { id: parentId },
-      select: { profileId: true, id: true },
+      select: { profileId: true, id: true, isLocked: true },
     });
     if (!parent || parent.profileId !== profile.id) {
       return NextResponse.json({ error: "Parent comment not found" }, { status: 404 });
+    }
+    if (parent.isLocked) {
+      return NextResponse.json({ error: "That thread is locked." }, { status: 403 });
     }
   }
 

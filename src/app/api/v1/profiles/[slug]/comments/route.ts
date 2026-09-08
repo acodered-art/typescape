@@ -80,6 +80,19 @@ export async function POST(
   const profile = await prisma.profile.findUnique({ where: { slug }, select: { id: true } });
   if (!profile) return fail("Profile not found", 404);
 
+  // A reply must target a real comment on *this* profile, and a locked thread
+  // accepts nothing. Without this, a lock is cosmetic and a client could nest a
+  // reply under a comment from another file.
+  const parentId = typeof body.parentId === "string" && body.parentId ? body.parentId : null;
+  if (parentId) {
+    const parent = await prisma.comment.findUnique({
+      where: { id: parentId },
+      select: { profileId: true, isLocked: true },
+    });
+    if (!parent || parent.profileId !== profile.id) return fail("Parent comment not found", 404);
+    if (parent.isLocked) return fail("That thread is locked.", 403);
+  }
+
   const verdict = moderate(text);
   if (verdict.hold) {
     // Store it removed rather than discarding it: a reviewer cannot judge a
@@ -88,7 +101,7 @@ export async function POST(
     const held = await prisma.comment.create({
       data: {
         profileId: profile.id,
-        parentId: typeof body.parentId === "string" ? body.parentId : null,
+        parentId,
         userId: guard.auth.user.id,
         body: sanitize(text),
         isRemoved: true,
@@ -119,7 +132,7 @@ export async function POST(
   const comment = await prisma.comment.create({
     data: {
       profileId: profile.id,
-      parentId: typeof body.parentId === "string" ? body.parentId : null,
+      parentId,
       userId: guard.auth.user.id,
       body: sanitize(text),
     },

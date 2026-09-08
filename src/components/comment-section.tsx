@@ -18,6 +18,10 @@ interface CommentData {
   createdAt: string;
   voteCount: number;
   user: CommentUser;
+  /** Withheld by a moderator; the body arrives as a placeholder. */
+  isRemoved?: boolean;
+  /** Thread closed to new replies. */
+  isLocked?: boolean;
   replies?: CommentData[];
 }
 
@@ -73,6 +77,7 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
   const [submitting, setSubmitting] = useState(false);
   const [myVotes, setMyVotes] = useState<Record<string, number>>({});
   const [note, setNote] = useState("");
+  const [reporting, setReporting] = useState<string | null>(null);
 
   const fetchComments = useCallback(async () => {
     try {
@@ -174,6 +179,37 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
     }
   };
 
+  /**
+   * Send a comment to the moderation queue. A reason is required because a
+   * report a moderator cannot act on is worse than no report.
+   */
+  const report = async (commentId: string) => {
+    const reason = window.prompt("Why should a moderator look at this?");
+    if (!reason || reason.trim().length < 10) {
+      setNote("A report needs at least a sentence explaining the problem.");
+      return;
+    }
+    setReporting(commentId);
+    setNote("");
+    try {
+      const res = await fetchWithCsrf("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetType: "comment", targetId: commentId, reason: reason.trim() }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setNote(d.data?.alreadyReported ? "You already reported this." : "Sent to a moderator. Thank you.");
+      } else {
+        setNote(res.status === 401 ? "Sign in to report something." : d.error || "That did not go through.");
+      }
+    } catch {
+      setNote("Network error.");
+    } finally {
+      setReporting(null);
+    }
+  };
+
   const gutter = (comment: CommentData, size: number) => {
     const myVote = myVotes[comment.id];
     return (
@@ -203,13 +239,38 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
               {timeAgo(comment.createdAt)}
             </span>
           </div>
-          {!isReply && (
-            <button type="button" onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)} className="font-typed text-[12px] font-bold tracking-[0.1em] text-blue hover:text-navy">
-              {replyTo === comment.id ? "CLOSE" : "REPLY"}
-            </button>
-          )}
+          <div className="flex shrink-0 items-center gap-3">
+            {!comment.isRemoved && (
+              <button
+                type="button"
+                onClick={() => report(comment.id)}
+                disabled={reporting === comment.id}
+                className="font-typed text-[12px] font-bold tracking-[0.1em] text-steel-2 hover:text-navy"
+                title="Send this to a moderator"
+              >
+                {reporting === comment.id ? "SENT" : "REPORT"}
+              </button>
+            )}
+            {!isReply && !comment.isRemoved && !comment.isLocked && (
+              <button type="button" onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)} className="font-typed text-[12px] font-bold tracking-[0.1em] text-blue hover:text-navy">
+                {replyTo === comment.id ? "CLOSE" : "REPLY"}
+              </button>
+            )}
+          </div>
         </div>
-        <p className="max-w-[620px] whitespace-pre-wrap text-[15px] leading-[1.55]">{comment.body}</p>
+        {comment.isRemoved ? (
+          <p className="max-w-[620px] font-typed text-[14px] italic text-steel-2">
+            {comment.body}
+          </p>
+        ) : (
+          <p className="max-w-[620px] whitespace-pre-wrap text-[15px] leading-[1.55]">{comment.body}</p>
+        )}
+
+        {comment.isLocked && (
+          <span className="font-typed text-[11px] uppercase tracking-[0.12em] text-navy">
+            Thread locked
+          </span>
+        )}
 
         {replyTo === comment.id && (
           <form
