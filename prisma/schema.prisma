@@ -21,6 +21,13 @@ model User {
   bio           String?
   reputation    Int       @default(0)
   role          String    @default("user") // user, moderator, admin
+  /// Moderation state. "active" | "timeout" | "banned". Timeout/banned users
+  /// cannot post; a ban also hides their content pending review.
+  status        String    @default("active")
+  /// When a timeout/bans lifts; null means indefinite (a true ban).
+  statusUntil   DateTime? @map("status_until")
+  /// Moderator-facing reason, shown to the user on their own profile.
+  statusReason  String?   @map("status_reason")
   /// Billing plan slug: "free" | "pro" | "business".
   plan          String    @default("free")
   planRenewsAt  DateTime? @map("plan_renews_at")
@@ -56,6 +63,8 @@ model User {
   groupsCreated      Group[]        @relation("GroupCreator")
   apiKeys            ApiKey[]
   subscriptions      Subscription[]
+  removedComments    Comment[]      @relation("CommentRemovedBy")
+  auditEvents        AuditLog[]     @relation("AuditActor")
 
   @@map("users")
 }
@@ -151,6 +160,10 @@ model Profile {
   metadata    Json?    // {born, occupation, ...}
   createdBy   String?  @map("created_by") @db.Uuid
   isVerified  Boolean  @default(false) @map("is_verified")
+  /// Locked files reject new typings and comments until unlocked.
+  isLocked    Boolean  @default(false) @map("is_locked")
+  /// Staff-only note explaining a lock or a correction in progress.
+  staffNote   String?  @map("staff_note")
   viewCount   Int      @default(0) @map("view_count")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -232,18 +245,29 @@ model Comment {
   userId     String   @map("user_id") @db.Uuid
   body       String
   voteCount  Int      @default(0) @map("vote_count")
+  /// Author deleted it; the row survives so replies keep their parent.
   isDeleted  Boolean  @default(false) @map("is_deleted")
+  /// Removed by a moderator. Kept separate from isDeleted so a moderator can
+  /// restore it, and so the UI can say "removed by a moderator" rather than
+  /// pretending the author did it.
+  isRemoved  Boolean  @default(false) @map("is_removed")
+  removedBy  String?  @map("removed_by") @db.Uuid
+  removedAt  DateTime? @map("removed_at")
+  /// Thread lock: no new replies.
+  isLocked   Boolean  @default(false) @map("is_locked")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  profile Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  parent  Comment?  @relation("CommentThread", fields: [parentId], references: [id])
-  replies Comment[] @relation("CommentThread")
-  user    User      @relation(fields: [userId], references: [id])
-  votes   CommentVote[]
+  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentThread")
+  user      User      @relation(fields: [userId], references: [id])
+  votes     CommentVote[]
+  removedByUser User? @relation("CommentRemovedBy", fields: [removedBy], references: [id])
 
   @@index([profileId])
   @@index([parentId])
+  @@index([isRemoved])
   @@map("comments")
 }
 
@@ -728,4 +752,39 @@ model Subscription {
   @@index([userId])
   @@index([status])
   @@map("subscriptions")
+}
+
+// ─── Audit log ───────────────────────────────────────────────
+
+/// Every staff action that changes someone else's data. Append-only: rows are
+/// never updated or deleted, so the record of who did what survives disagreement
+/// about whether it should have been done.
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  /// Denormalised so the log stays readable if the account is removed.
+  actorName  String?  @map("actor_name")
+  /// e.g. comment.remove, user.ban, role.change, profile.lock.
+  action     String
+  /// Model name, e.g. "Comment", "User", "Profile".
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  /// Human-readable target label for display without a join.
+  targetLabel String? @map("target_label")
+  /// Free-text reason the moderator gave.
+  reason     String?
+  /// Before/after snapshot for reversible actions.
+  before     Json?
+  after      Json?
+  /// Denormalised request context for abuse investigation.
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([actorId])
+  @@map("audit_log")
 }

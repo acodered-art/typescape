@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { guardCanPost } from "@/lib/post-guard";
 import { guardV1, okWithLimit, fail, pagination } from "@/lib/api-v1";
 import { moderate } from "@/lib/moderation";
 
@@ -58,6 +59,10 @@ export async function POST(
   const guard = await guardV1(req, "write");
   if (guard.response) return guard.response;
 
+  // A ban or timeout must actually stop writes.
+  const blocked = await guardCanPost(guard.auth.user.id);
+  if (blocked?.response) return blocked.response;
+
   const { slug } = await params;
 
   let body: { text?: unknown; parentId?: unknown };
@@ -77,17 +82,36 @@ export async function POST(
 
   const verdict = moderate(text);
   if (verdict.hold) {
+    // Store it removed rather than discarding it: a reviewer cannot judge a
+    // comment they cannot read, and the author can see what was held. The row
+    // never appears publicly until the queue item is approved.
+    const held = await prisma.comment.create({
+      data: {
+        profileId: profile.id,
+        parentId: typeof body.parentId === "string" ? body.parentId : null,
+        userId: guard.auth.user.id,
+        body: sanitize(text),
+        isRemoved: true,
+      },
+      select: { id: true },
+    });
+
     await prisma.moderationItem.create({
       data: {
         contentType: "comment",
-        contentId: profile.id,
+        contentId: held.id,
         flaggedBy: guard.auth.user.id,
-        reason: `auto:${verdict.flags.map((f) => f.rule).join(",")}`,
+        reason: `auto:${verdict.flags.map((f) => f.rule).join(",")} (risk ${verdict.risk})`,
         status: "pending",
       },
     });
+
     return Response.json(
-      { error: "This comment was held for review.", reasons: verdict.flags.map((f) => f.note) },
+      {
+        error: "This comment was held for review.",
+        reasons: verdict.flags.map((f) => f.note),
+        commentId: held.id,
+      },
       { status: 422 }
     );
   }

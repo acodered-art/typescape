@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { guardCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/session";
+import { guardCanPost } from "@/lib/post-guard";
 import { rateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/client-ip";
 import { moderate } from "@/lib/moderation";
@@ -48,7 +49,24 @@ export async function GET(
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(comments);
+  // A removed comment keeps its place in the thread — so replies stay attached
+  // and nobody can pretend the exchange never happened — but its body is
+  // withheld and labelled as moderator action rather than author deletion.
+  // This is what Reddit's "[removed by moderator]" and Discord's deletion notice
+  // achieve.
+  const shape = (c: (typeof comments)[number] | (typeof comments)[number]["replies"][number]) => {
+    const removed = "isRemoved" in c && c.isRemoved;
+    return {
+      ...c,
+      body: removed ? "[removed by a moderator]" : c.body,
+      isRemoved: removed,
+      voteCount: removed ? 0 : c.voteCount,
+    };
+  };
+
+  return NextResponse.json(
+    comments.map((c) => ({ ...shape(c), replies: c.replies.map(shape) }))
+  );
 }
 
 export async function POST(
@@ -61,6 +79,10 @@ export async function POST(
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // A ban or timeout must actually stop writes.
+  const blocked = await guardCanPost(session.user.id);
+  if (blocked?.response) return blocked.response;
 
   const ip = clientIp(req);
   const rl = await rateLimit(`comment:${ip}`, 10, 60_000);

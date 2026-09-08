@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { guardCanPost } from "@/lib/post-guard";
 import { guardV1, okWithLimit, fail } from "@/lib/api-v1";
 import { calcConsensus, calcVoteWeight } from "@/lib/utils";
 
@@ -18,6 +19,10 @@ export async function POST(
 ) {
   const guard = await guardV1(req, "write");
   if (guard.response) return guard.response;
+
+  // A ban or timeout must actually stop writes.
+  const blocked = await guardCanPost(guard.auth.user.id);
+  if (blocked?.response) return blocked.response;
   const userId = guard.auth.user.id;
 
   const { tid } = await params;

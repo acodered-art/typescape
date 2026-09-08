@@ -164,6 +164,9 @@ export function Header() {
                 <div role="menu" className="absolute right-0 top-[calc(100%+8px)] z-50 flex min-w-[190px] flex-col bg-navy py-1 font-typed text-[14px] shadow-[0_12px_28px_rgba(0,0,0,0.45)]">
                   <Link role="menuitem" href={`/user/${user.username}`} className="px-4 py-[9px] text-paper hover:bg-blue hover:text-ink">Your file</Link>
                   <Link role="menuitem" href="/settings" className="px-4 py-[9px] text-paper hover:bg-blue hover:text-ink">Settings</Link>
+                  {(user.role === "moderator" || user.role === "admin") && (
+                    <Link role="menuitem" href="/mod" className="px-4 py-[9px] text-paper hover:bg-blue hover:text-ink">Moderation</Link>
+                  )}
                   {user.role === "admin" && (
                     <Link role="menuitem" href="/admin" className="px-4 py-[9px] text-paper hover:bg-blue hover:text-ink">Admin</Link>
                   )}
@@ -247,6 +250,7 @@ export function Header() {
                 </Link>
                 <div className="flex justify-center gap-5 font-typed text-[12px] text-paper/60">
                   <Link href="/settings" className="text-paper underline hover:text-blue">Settings</Link>
+                  {(user.role === "moderator" || user.role === "admin") && <Link href="/mod" className="text-paper underline hover:text-blue">Moderation</Link>}
                   {user.role === "admin" && <Link href="/admin" className="text-paper underline hover:text-blue">Admin</Link>}
                   <button type="button" onClick={handleSignOut} className="text-paper underline hover:text-blue">Sign out</button>
                 </div>

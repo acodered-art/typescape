@@ -5,6 +5,7 @@ import { generateSlug } from "@/lib/utils";
 import { rateLimit } from "@/lib/rate-limit";
 import { clientIp, isInternalRequest } from "@/lib/client-ip";
 import { searchProfiles, buildDocsFromDb, indexProfiles } from "@/lib/search";
+import { guardCanPost } from "@/lib/post-guard";
 
 export async function GET(req: Request) {
   const ip = clientIp(req);
@@ -192,6 +193,10 @@ export async function POST(req: Request) {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // A ban or timeout must actually stop writes.
+  const blocked = await guardCanPost(session.user.id);
+  if (blocked?.response) return blocked.response;
 
   const ip = clientIp(req);
   const rl = await rateLimit(`profile-create:${ip}`, 3, 60_000);

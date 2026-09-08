@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { guardCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/session";
+import { guardCanPost } from "@/lib/post-guard";
 import { rateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/client-ip";
 
@@ -15,6 +16,10 @@ export async function POST(
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // A ban or timeout must actually stop writes.
+  const blocked = await guardCanPost(session.user.id);
+  if (blocked?.response) return blocked.response;
 
   const ip = clientIp(req);
   const rl = await rateLimit(`typing:${ip}`, 20, 60_000);
