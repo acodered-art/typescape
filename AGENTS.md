@@ -469,6 +469,10 @@ All under `src/app/api/`. See the full table in the existing AGENTS.md. Key patt
 | Plans / billing | `/plans`, `GET /api/plans` | `src/lib/plans.ts` is the source of truth; `Plan`/`Subscription` models |
 | Embed | `/embed`, `public/embed.js`, `GET /api/embed/card` | Keyless, CORS-open, no iframe |
 | PWA | `/manifest.webmanifest`, `public/sw.js`, `/offline` | SW caches the shell only, never API data |
+| Moderation desk | `/mod` | Queue + comment remove/restore/lock; moderators **and** admins |
+| Admin desk | `/admin` | Record, readers, audit log, site maintenance; admins only |
+| Staff docs | `docs/MODERATION.md` | Permission model, guardrails, every action |
+| API docs | `docs/API.md` | Auth, envelope, endpoints, client gotchas |
 
 Behaviour worth knowing before changing things:
 
@@ -481,9 +485,40 @@ Behaviour worth knowing before changing things:
 - **Contests are evidence.** `POST /api/typings/[tid]/contest` requires a 20+ character reason,
   upserts one per reader, and registers a disagreeing vote.
 - **Testable libs stay dependency-free.** `daily.ts`, `compatibility.ts`, `moderation.ts`,
-  `plans.ts`, `traits.ts`, `credibility.ts`, `contested.ts` avoid Prisma/Next imports so
-  `npm test` can import them. If you add a `@/lib` alias to one, the Node runner fails — use a
-  relative `./x.ts` import instead (see `compatibility.ts`).
+  `plans.ts`, `traits.ts`, `credibility.ts`, `contested.ts`, `permissions.ts`, `outbox.ts`
+  avoid Prisma/Next imports so `npm test` can import them. If you add a `@/lib` alias to one,
+  the Node runner fails — use a relative `./x.ts` import instead (see `compatibility.ts`).
+- **Staff routes ask for a named permission, never a role.** `guardStaff(req, "comment.remove")`
+  from `src/lib/staff.ts`. The role->permission map is `src/lib/permissions.ts`; adding a route
+  cannot accidentally grant a moderator admin power. Do **not** write `role === "admin"` checks
+  — that is what made the moderator role useless before 2026-09-08.
+- **Every ban/timeout is enforced on write paths** via `guardCanPost` (`src/lib/post-guard.ts`),
+  in the web routes **and** `/api/v1`. Status is evaluated on read (`effectiveStatus`), so a
+  lapsed timeout stops blocking with no cron. If you add a write route, call it.
+- **Removal is soft.** `Comment.isRemoved` hides the body and shows
+  `[removed by a moderator]`; the row and its thread position survive so a moderator can
+  restore it. Never hard-delete a comment to hide it — replies would detach.
+- **Held comments are stored already-removed**, so a reviewer can read them in the queue.
+  Approving sets `isRemoved: false`; rejecting leaves it hidden. Both are audited.
+- **`/api/v1` accepts an API key OR a session token.** `guardV1` routes on the `ts_live_`
+  prefix. A `via: "session"` caller gets no `X-RateLimit-*` headers because its limit is
+  per-IP, not per-key.
+- **Audit is append-only and best-effort.** `audit()` never throws, so a logging failure cannot
+  roll back a committed moderation action. Never `update`/`delete` an `audit_log` row.
+
+## Known risks / open decisions
+
+These are deliberate choices or known sharp edges. Read before "fixing" one.
+
+| Item | Where | Note |
+|---|---|---|
+| Test-account seeder creates **working logins** | `scripts/seed-staff.mts` | `probe_admin` / `probe_mod` / `probe_user`, password `probe-password-123`. Refuses to run without `--yes-really`, and refuses a database with >50 users unless `--force`. Still: delete the accounts before going live. |
+| Test-key minter | `scripts/mk-testkey.mts` | Mints a real API key for a real user. Same warning. |
+| Moderators cannot read the audit log | `src/lib/permissions.ts` | `audit.view` is admin-only by design (cf. Wikipedia: rollbackers do not see checkuser data). A moderator cannot therefore verify their own actions were logged. Flip it by adding `audit.view` to the moderator set if that trade is wrong. |
+| No systemd unit for **this repo's** dev needs | n/a | The live unit is `deploy/typescape.service`; see `deploy/README.md`. |
+| Payment processor not wired | `src/lib/plans.ts` | Billing model + enforcement complete; a real processor needs credentials. |
+| iOS PWA push untested | n/a | Blocks the "Capacitor or not" decision for the mobile client. Real-device test required. |
+| `dangerouslySetInnerHTML` for JSON-LD | profile/type/layout pages | Values come from the database and are JSON-stringified; safe today. Do not interpolate raw user input into those objects. |
 
 ## Key Gotchas
 
