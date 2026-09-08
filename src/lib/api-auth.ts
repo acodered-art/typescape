@@ -24,6 +24,10 @@ export type ApiAuth = {
   keyId: string;
   /** The plan actually in force for this key's owner. */
   plan: string;
+  /** Request limit for this key, so responses can advertise it. */
+  rateLimit: number;
+  /** Requests left in the current window. */
+  remaining: number;
 };
 
 export type ApiAuthResult = ApiAuth | { response: Response };
@@ -122,6 +126,8 @@ export async function authenticateApiRequest(req: Request): Promise<ApiAuthResul
     scopes: record.scopes,
     keyId: record.id,
     plan: planSlug,
+    rateLimit: limit,
+    remaining: rl.remaining,
   };
 }
 

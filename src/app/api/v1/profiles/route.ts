@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { authenticateApiRequest, hasScope } from "@/lib/api-auth";
+import { guardV1, okWithLimit, fail, pagination } from "@/lib/api-v1";
 import { searchProfiles } from "@/lib/search";
 
 /**
@@ -12,22 +12,15 @@ import { searchProfiles } from "@/lib/search";
  * documented envelope, per-key rate limits, and usage accounting.
  */
 export async function GET(req: Request) {
-  const auth = await authenticateApiRequest(req);
-  if ("response" in auth) return auth.response;
-  if (!hasScope(auth, "read")) {
-    return Response.json({ error: "This key lacks the 'read' scope" }, { status: 403 });
-  }
+  const guard = await guardV1(req);
+  if (guard.response) return guard.response;
 
-  const { searchParams } = new URL(req.url);
+  const { searchParams, limit, offset } = pagination(req, 20, 50);
   const q = searchParams.get("q")?.trim() ?? "";
   const type = searchParams.get("type")?.trim() ?? "";
   const system = searchParams.get("system")?.trim() ?? "";
   const category = searchParams.get("category")?.trim() ?? "";
   const sort = searchParams.get("sort") ?? "views";
-  const rawLimit = Number(searchParams.get("limit")) || 20;
-  const rawOffset = Number(searchParams.get("offset")) || 0;
-  const limit = Math.min(Math.max(Math.floor(rawLimit), 1), 50);
-  const offset = Math.max(Math.floor(rawOffset), 0);
 
   const where: Record<string, unknown> = {};
   if (category) where.category = { slug: category };
@@ -80,9 +73,11 @@ export async function GET(req: Request) {
     const byId = new Map(rows.map((r) => [r.id, r]));
     const ordered = ids.map((id) => byId.get(id)).filter(Boolean);
 
-    return Response.json({
-      data: ordered,
-      meta: { total: ids.length, limit, offset, engine: "meilisearch" },
+    return okWithLimit(guard.auth, ordered, {
+      total: ids.length,
+      limit,
+      offset,
+      engine: "meilisearch",
     });
   }
 
@@ -120,8 +115,10 @@ export async function GET(req: Request) {
     prisma.profile.count({ where }),
   ]);
 
-  return Response.json({
-    data: rows,
-    meta: { total, limit, offset, engine: "postgres" },
+  return okWithLimit(guard.auth, rows, {
+    total,
+    limit,
+    offset,
+    engine: "postgres",
   });
 }

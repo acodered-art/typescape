@@ -276,6 +276,62 @@ nohup env NODE_ENV=production npx next start -p 3002 > /tmp/typescape-live.log 2
 - Bare-`urllib` requests to the public URL get a **403 from Cloudflare's bot challenge**;
   that is expected. Send a browser User-Agent to test.
 
+## Client build (started 2026-09-08)
+
+Plan: web-first PWA, then wrap with Capacitor. Rationale and tradeoffs are in the
+session write-up; the short version is that all the differentiating logic
+(`traits.ts`, `compatibility.ts`, `credibility.ts`, plans, moderation) is pure
+TypeScript with 185 tests, and a second client language would mean maintaining two
+implementations of the thing that matters.
+
+### Phase 0 — API a client can actually use (DONE)
+
+- [x] **Bearer token auth.** `POST|GET|DELETE /api/auth/token`. `session.ts` now
+      resolves NextAuth -> bearer header -> cookie, all against the same `Session`
+      row, so a phone token and a browser cookie carry identical authority.
+      Revocation is per-token. Identical errors for bad password and unknown user
+      (no account enumeration). 10/min per IP. `POST` needs no CSRF: there is no
+      ambient credential to forge.
+- [x] **`/api/v1` widened from 2 endpoints to 11.** Reads: `me`, `systems`,
+      `traits`, `profiles`, `profiles/[slug]`, `profiles/[slug]/comments`, `daily`,
+      `feed`. Writes: `typings/[tid]/vote`, `profiles/[slug]/comments`, `match`,
+      `compatibility`. One envelope (`{data, meta}` / `{error}`) via
+      `src/lib/api-response.ts`, one guard (`guardV1`) enforcing the key scope.
+- [x] **Rate-limit headers on success**, not only on 429, so a client can back off
+      before it is blocked.
+- [x] **Contract tests + HTTP smoke.** `tests/api-contract.test.ts` (12 tests)
+      pins the envelope and pagination; `scripts/api-smoke.mjs` runs the real HTTP
+      surface — auth rejection, all reads, envelope, clamping, writes, headers,
+      CORS. **21/21 pass.**
+      The smoke suite earned its keep immediately: it caught that
+      `/api/v1/profiles` had its own inline pagination where `limit=0` returned 20
+      instead of clamping to 1 (unit tests passed because they tested the shared
+      helper, not the route).
+- [x] **`docs/API.md`** — how a client authenticates, the envelope contract, every
+      endpoint, and the four gotchas that would otherwise cost a client author a
+      day (votes toggle, comments can be held, ambiguous `agreement`, null score).
+
+### Phase 1 — Offline daily loop (DONE)
+
+- [x] **`src/lib/outbox.ts`** — a bounded, ordered, idempotent offline queue in
+      `localStorage`. A vote cast offline is queued and replayed on reconnect and
+      on a 30s timer. The queue records the value the reader saw, so a duplicate
+      send is skipped rather than toggling the vote off; a change of mind collapses
+      the pending op; a failing op is dropped after 4 attempts.
+      12 unit tests.
+- [x] **`useOutbox()`** hook + `OutboxStatus` strip in the layout that says
+      "N changes waiting to send" with a manual retry, and "Offline — changes are
+      saved on this device." Only rendered when there is something to report.
+- [x] **`VotePanel` uses the outbox**, so the offline path is the real path.
+
+### Phase 2 — remaining client surface
+
+- [ ] Decide the shell: Capacitor wrapper vs. staying a PWA. Both need the same
+      API, which now exists.
+- [ ] Native push notifications for the daily pick (needs the Capacitor path).
+- [ ] Photo upload for profile images (camera access).
+- [ ] iOS install/push test on a real device before committing to "no native needed".
+
 ## Known debt (not blocking, do not silently "fix")
 
 | Item | Location | Note |

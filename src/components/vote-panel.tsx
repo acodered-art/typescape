@@ -5,6 +5,7 @@ import { calcConsensus } from "@/lib/utils";
 import { getCorrelations } from "@/lib/correlations";
 import { Btn, EmptySlot, InkTag, SectionHead, SegBar, Typed, bySystemOrder } from "@/components/dossier";
 import { ContestModal, readingLabel } from "@/components/contest-modal";
+import { useOutbox } from "@/lib/use-outbox";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 
 export type TypingRead = {
@@ -116,26 +117,24 @@ export function VotePanel({ profileSlug, initial, initialMine, mode = "summary" 
   }, [fetchTypings, initial, profileSlug]);
 
   const [contest, setContest] = useState<{ id: string; label: string } | null>(null);
+  const outbox = useOutbox();
 
   const handleVote = async (typingId: string, voteValue: 1 | -1) => {
     // Optimistic toggle; the refetch after the request settles the real counts.
+    const before = myVotes[typingId] ?? null;
     setMyVotes((prev) => ({ ...prev, [typingId]: prev[typingId] === voteValue ? null : voteValue }));
     setNote("");
-    try {
-      const res = await fetchWithCsrf(`/api/typings/${typingId}/vote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ voteValue }),
-      });
-      if (!res.ok) {
-        setMyVotes((prev) => ({ ...prev, [typingId]: null }));
-        setNote(res.status === 401 ? "Sign in to vote on a finding." : "That vote did not go through.");
-      }
-      window.dispatchEvent(new Event(VOTES_EVENT));
-    } catch {
-      setMyVotes((prev) => ({ ...prev, [typingId]: null }));
-      setNote("That vote did not go through.");
+    // Queued offline rather than lost: the outbox replays it on reconnect.
+    const sent = await outbox.vote(typingId, voteValue, before);
+    if (!sent) {
+      setNote(
+        typeof navigator !== "undefined" && !navigator.onLine
+          ? "Saved on this device — it will send when you're back online."
+          : "Vote queued — it will retry shortly."
+      );
+      return;
     }
+    window.dispatchEvent(new Event(VOTES_EVENT));
   };
 
   const voteButtons = (t: TypingRead, secondOnly = false) => {

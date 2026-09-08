@@ -6,6 +6,7 @@ import { FloatingAddButton } from "@/components/floating-add-button";
 import { InkFilter } from "@/components/dossier";
 import { organizationJsonLd } from "@/lib/json-ld";
 import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
+import { OutboxStatus } from "@/components/outbox-status";
 
 // Printed face: labels, headings, names, the wordmark, the stamp.
 // Google now ships Big Shoulders as one variable family with an optical-size axis;
@@ -63,6 +64,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="mx-auto w-full max-w-[1100px] px-4 pb-10 sm:px-10">{children}</main>
         <FloatingAddButton />
         <ServiceWorkerRegistrar />
+        <div className="mx-auto w-full max-w-[1100px] px-4 sm:px-10">
+          <OutboxStatus />
+        </div>
       </body>
     </html>
   );
