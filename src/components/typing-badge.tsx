@@ -26,7 +26,7 @@ export function TypingBadge({ systemSlug, systemName, typeValue, confidence, ton
       title={`${typeValue}, ${systemName}`}
     >
       <span>{typeValue}</span>
-      {showSystem && <span className="text-[11px] font-normal uppercase tracking-[0.1em] text-steel-2">{systemName}</span>}
+      {showSystem && <span className="text-xs font-normal uppercase tracking-[0.1em] text-steel-2">{systemName}</span>}
       {showConfidence && confidence > 0 && <span className="font-normal text-steel-2">{Math.round(confidence * 100)}%</span>}
     </Link>
   );

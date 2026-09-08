@@ -123,10 +123,10 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b-[3px] border-blue bg-ink">
       <div className="mx-auto flex h-[56px] max-w-[1100px] items-center justify-between gap-4 px-4 md:h-[60px] md:px-10">
         <div className="flex items-center gap-8">
-          <Link href="/" className="font-display text-[28px] font-extrabold uppercase leading-none tracking-[0.06em] text-blue hover:text-blue md:text-[33px]">
+          <Link href="/" className="font-display text-9xl font-extrabold uppercase leading-none tracking-[0.06em] text-blue hover:text-blue md:text-11xl">
             TypeScape
           </Link>
-          <nav className="hidden items-center gap-[18px] text-[15px] md:flex" aria-label="Sections">
+          <nav className="hidden items-center gap-[18px] text-lg md:flex" aria-label="Sections">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} className={`nav-link ${isActive(n.href) ? "nav-link-active" : ""}`}>
                 {n.label}
@@ -145,7 +145,7 @@ export function Header() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search the files"
               aria-label="Search the files"
-              className="w-full bg-transparent text-[14px] text-paper outline-none placeholder:text-paper/50"
+              className="w-full bg-transparent text-md text-paper outline-none placeholder:text-paper/50"
             />
           </form>
           {user ? (
@@ -155,13 +155,13 @@ export function Header() {
                 onClick={() => setMenu(!menu)}
                 aria-expanded={menu}
                 aria-haspopup="menu"
-                className={`flex items-center gap-[9px] border border-blue py-[7px] pl-[10px] pr-[14px] font-display text-[19px] font-bold uppercase leading-none tracking-[0.1em] ${onOwnFile ? "bg-blue text-ink" : "text-blue hover:bg-blue hover:text-ink"}`}
+                className={`flex items-center gap-[9px] border border-blue py-[7px] pl-[10px] pr-[14px] font-display text-4xl font-bold uppercase leading-none tracking-[0.1em] ${onOwnFile ? "bg-blue text-ink" : "text-blue hover:bg-blue hover:text-ink"}`}
               >
                 <PersonIcon />
                 <span>{user.username}</span>
               </button>
               {menu && (
-                <div role="menu" className="absolute right-0 top-[calc(100%+8px)] z-50 flex min-w-[190px] flex-col bg-navy py-1 font-typed text-[14px] shadow-[0_12px_28px_rgba(0,0,0,0.45)]">
+                <div role="menu" className="absolute right-0 top-[calc(100%+8px)] z-50 flex min-w-[190px] flex-col bg-navy py-1 font-typed text-md shadow-[0_12px_28px_rgba(0,0,0,0.45)]">
                   <Link role="menuitem" href={`/user/${user.username}`} className="px-4 py-[9px] text-paper hover:bg-blue hover:text-ink">Your file</Link>
                   <Link role="menuitem" href="/settings" className="px-4 py-[9px] text-paper hover:bg-blue hover:text-ink">Settings</Link>
                   {(user.role === "moderator" || user.role === "admin") && (
@@ -175,7 +175,7 @@ export function Header() {
               )}
             </div>
           ) : (
-            <Link href="/auth/signin" className="border border-blue px-4 py-[9px] font-display text-[19px] font-bold uppercase leading-none tracking-[0.1em] text-blue hover:bg-blue hover:text-ink">
+            <Link href="/auth/signin" className="border border-blue px-4 py-[9px] font-display text-4xl font-bold uppercase leading-none tracking-[0.1em] text-blue hover:bg-blue hover:text-ink">
               Sign in
             </Link>
           )}
@@ -202,17 +202,17 @@ export function Header() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search the files"
               aria-label="Search the files"
-              className="w-full bg-transparent font-typed text-[14px] text-navy outline-none placeholder:text-steel-2"
+              className="w-full bg-transparent font-typed text-md text-navy outline-none placeholder:text-steel-2"
             />
           </div>
-          <button type="submit" className="flex h-[50px] items-center bg-blue px-[18px] font-display text-[20px] font-extrabold uppercase tracking-[0.12em] text-ink">Search</button>
+          <button type="submit" className="flex h-[50px] items-center bg-blue px-[18px] font-display text-5xl font-extrabold uppercase tracking-[0.12em] text-ink">Search</button>
         </form>
       )}
 
       {drawer && (
         <div className="fixed inset-0 z-[60] flex flex-col overflow-y-auto bg-navy text-paper md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
           <div className="flex h-[56px] shrink-0 items-center justify-between border-b-[3px] border-blue bg-ink px-4">
-            <Link href="/" className="font-display text-[28px] font-extrabold uppercase leading-none tracking-[0.06em] text-blue hover:text-blue">TypeScape</Link>
+            <Link href="/" className="font-display text-9xl font-extrabold uppercase leading-none tracking-[0.06em] text-blue hover:text-blue">TypeScape</Link>
             <button type="button" onClick={() => setDrawer(false)} aria-label="Close menu" className="flex h-11 w-11 items-center justify-center text-paper">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
             </button>
@@ -226,7 +226,7 @@ export function Header() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search the files"
                 aria-label="Search the files"
-                className="w-full bg-transparent font-typed text-[14px] text-navy outline-none placeholder:text-steel-2"
+                className="w-full bg-transparent font-typed text-md text-navy outline-none placeholder:text-steel-2"
               />
             </div>
           </form>
@@ -235,7 +235,7 @@ export function Header() {
               <Link
                 key={n.href}
                 href={n.href}
-                className={`flex min-h-[56px] items-center gap-3 font-display text-[40px] font-extrabold uppercase leading-none text-paper hover:text-paper ${i < arr.length - 1 ? "border-b border-paper/[.18]" : ""}`}
+                className={`flex min-h-[56px] items-center gap-3 font-display text-12xl font-extrabold uppercase leading-none text-paper hover:text-paper ${i < arr.length - 1 ? "border-b border-paper/[.18]" : ""}`}
               >
                 <span className="sq" />
                 <span>{n.label}</span>
@@ -245,10 +245,10 @@ export function Header() {
           <div className="mt-auto flex flex-col gap-[10px] px-4 pb-6 pt-4">
             {user ? (
               <>
-                <Link href={`/user/${user.username}`} className="flex h-[52px] items-center justify-center gap-2 bg-blue font-display text-[22px] font-extrabold uppercase tracking-[0.14em] text-ink hover:text-ink">
+                <Link href={`/user/${user.username}`} className="flex h-[52px] items-center justify-center gap-2 bg-blue font-display text-6xl font-extrabold uppercase tracking-[0.14em] text-ink hover:text-ink">
                   <PersonIcon /> {user.username}
                 </Link>
-                <div className="flex justify-center gap-5 font-typed text-[12px] text-paper/60">
+                <div className="flex justify-center gap-5 font-typed text-sm text-paper/60">
                   <Link href="/settings" className="text-paper underline hover:text-blue">Settings</Link>
                   {(user.role === "moderator" || user.role === "admin") && <Link href="/mod" className="text-paper underline hover:text-blue">Moderation</Link>}
                   {user.role === "admin" && <Link href="/admin" className="text-paper underline hover:text-blue">Admin</Link>}
@@ -257,8 +257,8 @@ export function Header() {
               </>
             ) : (
               <>
-                <Link href="/auth/signin" className="flex h-[52px] items-center justify-center bg-blue font-display text-[22px] font-extrabold uppercase tracking-[0.14em] text-ink hover:text-ink">Sign in</Link>
-                <p className="text-center font-typed text-[12px] text-paper/60">
+                <Link href="/auth/signin" className="flex h-[52px] items-center justify-center bg-blue font-display text-6xl font-extrabold uppercase tracking-[0.14em] text-ink hover:text-ink">Sign in</Link>
+                <p className="text-center font-typed text-sm text-paper/60">
                   New here? <Link href="/auth/signin" className="text-paper underline hover:text-blue">Create an account</Link>
                 </p>
               </>

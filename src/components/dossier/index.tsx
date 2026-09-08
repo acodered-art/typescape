@@ -50,8 +50,8 @@ export function TabStrip({ children, className = "" }: { children: ReactNode; cl
 export function PageTitle({ title, aside, children }: { title: ReactNode; aside?: ReactNode; children?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3 pb-5 pt-8">
-      <h1 className="font-display text-[40px] font-extrabold uppercase leading-none tracking-[0.02em] sm:text-[48px]">{title}</h1>
-      {aside && <div className="font-typed text-[13px] text-paper/60">{aside}</div>}
+      <h1 className="font-display text-12xl font-extrabold uppercase leading-none tracking-[0.02em] sm:text-14xl">{title}</h1>
+      {aside && <div className="font-typed text-base text-paper/60">{aside}</div>}
       {children}
     </div>
   );
@@ -70,7 +70,7 @@ export function SectionHead({ title, aside, size = 24 }: { title: ReactNode; asi
         <span className="sq" />
         <h2 className="sec-h" style={size === 20 ? { fontSize: 20 } : undefined}>{title}</h2>
       </div>
-      {aside && <div className="font-typed text-[13px] text-navy">{aside}</div>}
+      {aside && <div className="font-typed text-base text-navy">{aside}</div>}
     </div>
   );
 }
@@ -85,7 +85,7 @@ export function Field({ label, ruled = false, className = "", children }: { labe
   return (
     <>
       <div className="lab">{label}</div>
-      <div className={ruled ? `ruled max-w-[520px] text-[14px] ${className}` : `ln text-[16px] ${className}`}>{children}</div>
+      <div className={ruled ? `ruled max-w-[520px] text-md ${className}` : `ln text-xl ${className}`}>{children}</div>
     </>
   );
 }
@@ -130,7 +130,7 @@ export function Stamp({ code, line, size = "lg", className = "" }: { code: strin
   return (
     <div className={`stamp ${className}`} role="img" aria-label={`${code}. ${line}`}>
       <div className="font-display font-extrabold leading-[0.9] tracking-[0.04em]" style={{ fontSize: size === "lg" ? 88 : 50 }}>{code}</div>
-      <div className="font-typed text-[12px] font-bold tracking-[0.2em]">{line}</div>
+      <div className="font-typed text-sm font-bold tracking-[0.2em]">{line}</div>
     </div>
   );
 }
@@ -180,7 +180,7 @@ export function FileCard({ href, name, series, aside, imageUrl, variant = "sheet
     : "bg-paper text-ink border border-steel";
   return (
     <div className={`on-paper flex flex-col ${box}`}>
-      <div className="flex justify-between gap-2 px-3 pt-2 font-typed text-[11px] font-bold uppercase tracking-[0.14em] text-navy">
+      <div className="flex justify-between gap-2 px-3 pt-2 font-typed text-xs font-bold uppercase tracking-[0.14em] text-navy">
         <span className="truncate">{series || "Unfiled"}</span>
         {aside && <span className="shrink-0 whitespace-nowrap">{aside}</span>}
       </div>
@@ -214,14 +214,14 @@ export function EmptySlot({ label, className = "", children }: { label?: string;
   return (
     <div className={`dashed flex flex-col justify-center gap-[10px] px-[18px] py-5 ${className}`}>
       {label && <span className="lab text-steel-2">{label}</span>}
-      <div className="font-typed text-[14px] leading-[1.5] text-navy">{children}</div>
+      <div className="font-typed text-md leading-[1.5] text-navy">{children}</div>
     </div>
   );
 }
 
 /** Typed small text in navy (asides, sources, captions on paper). */
 export function Typed({ className = "", children }: { className?: string; children: ReactNode }) {
-  return <span className={`font-typed text-[13px] text-navy ${className}`}>{children}</span>;
+  return <span className={`font-typed text-base text-navy ${className}`}>{children}</span>;
 }
 
 /**
@@ -236,8 +236,8 @@ export function SegBar({ lead, runner = 0, leadLabel, runnerLabel, height = 22, 
   const label = leadLabel || runnerLabel ? `${leadLabel ?? ""}${runnerLabel ? `, ${runnerLabel}` : ""}` : undefined;
   return (
     <div className={`flex gap-[3px] overflow-hidden ${className}`} style={{ height }} role="img" aria-label={label}>
-      <div className="flex items-center overflow-hidden whitespace-nowrap bg-blue px-2 font-typed text-[13px] font-bold text-ink" style={{ width: `${lead}%` }}>{leadLabel}</div>
-      {runner > 0 && <div className="flex items-center justify-end overflow-hidden whitespace-nowrap bg-navy px-2 font-typed text-[13px] font-bold text-paper" style={{ width: `${runner}%` }}>{runnerLabel}</div>}
+      <div className="flex items-center overflow-hidden whitespace-nowrap bg-blue px-2 font-typed text-base font-bold text-ink" style={{ width: `${lead}%` }}>{leadLabel}</div>
+      {runner > 0 && <div className="flex items-center justify-end overflow-hidden whitespace-nowrap bg-navy px-2 font-typed text-base font-bold text-paper" style={{ width: `${runner}%` }}>{runnerLabel}</div>}
       {rest > 0 && <div className="bg-steel" style={{ width: `${rest}%` }} />}
     </div>
   );
@@ -249,8 +249,8 @@ export function NavyCard({ href, title, className = "", children }: { href?: str
   const inner = (
     <>
       <span className="block h-1 w-10 bg-blue group-hover:bg-ink" aria-hidden="true" />
-      <div className="font-display text-[28px] font-extrabold uppercase leading-[0.95]">{title}</div>
-      {children && <div className="font-typed text-[12px] leading-[1.6] text-paper/65 group-hover:text-ink/70">{children}</div>}
+      <div className="font-display text-9xl font-extrabold uppercase leading-[0.95]">{title}</div>
+      {children && <div className="font-typed text-sm leading-[1.6] text-paper/65 group-hover:text-ink/70">{children}</div>}
     </>
   );
   if (href) return <Link href={href} className={cls}>{inner}</Link>;

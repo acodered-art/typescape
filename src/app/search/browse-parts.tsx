@@ -39,7 +39,7 @@ export function Cabinet({ all, rows, moreAfter = 7 }: { all: Drawer; rows: Drawe
       {first.map(row)}
       {rest.length > 0 && (
         <details className="group">
-          <summary className="cursor-pointer list-none px-3 py-2 font-typed text-[13px] text-blue underline hover:text-paper">
+          <summary className="cursor-pointer list-none px-3 py-2 font-typed text-base text-blue underline hover:text-paper">
             <span className="group-open:hidden">{rest.length} more drawers</span>
             <span className="hidden group-open:inline">Fewer drawers</span>
           </summary>

@@ -520,6 +520,49 @@ These are deliberate choices or known sharp edges. Read before "fixing" one.
 | iOS PWA push untested | n/a | Blocks the "Capacitor or not" decision for the mobile client. Real-device test required. |
 | `dangerouslySetInnerHTML` for JSON-LD | profile/type/layout pages | Values come from the database and are JSON-stringified; safe today. Do not interpolate raw user input into those objects. |
 
+## Changing the UI (do this the cheap way)
+
+The site is in beta, so the type and spacing get nudged constantly. Two rules keep
+that a one-line edit instead of a 50-file sweep.
+
+**1. Never hard-code a text size.** Use the named scale in `src/app/globals.css`
+(`--text-3xs` … `--text-18xl`). A codemod migrated all 323 `text-[Npx]` values:
+
+```bash
+grep -rn 'text-\[[0-9]*px\]' src/   # should return nothing
+```
+
+If you need a size that does not exist, add a `--text-*` token in the `@theme`
+block first — then it is available to every component. The mapping is:
+
+| px | token | | px | token |
+|---|---|---|---|---|
+| 11 | `text-xs` | | 20 | `text-5xl` |
+| 12 | `text-sm` | | 22 | `text-6xl` |
+| 13 | `text-base` | | 24 | `text-7xl` |
+| 14 | `text-md` | | 28 | `text-9xl` |
+| 15 | `text-lg` | | 33 | `text-11xl` |
+| 16 | `text-xl` | | 40 | `text-12xl` |
+| 17 | `text-2xl` | | 48 | `text-14xl` |
+| 18 | `text-3xl` | | 64 | `text-17xl` |
+| 19 | `text-4xl` | | 96 | `text-18xl` |
+
+`scripts/codemod-type-scale.py [--apply]` does the migration and **refuses to run
+if a size has no token**, so nothing is silently dropped.
+
+**2. Colours are already tokens.** `ink`, `navy`, `blue`, `steel`, `paper`,
+`paper-2`, `steel-2`. Do not write a hex value in a component; the palette is
+deliberately locked to those seven values. Add a token if you need a new one.
+
+Other knobs that live in one place: `--spacing-control` / `--spacing-control-sm`
+(button and input height) and `--breakpoint-phone` (the 640px breakpoint).
+
+**Adding a component?** Look at `src/components/dossier/index.tsx` first — `Sheet`,
+`Btn`, `SectionHead`, `Field`, `Typed`, `CodeChip`, `InkTag`, `Stamp`, `FileCard`
+already cover most needs and carry the correct type roles. The design has three
+type roles: `font-display` (Big Shoulders: headings, labels), `font-typed`
+(Courier Prime: codes, counts, small buttons), `font-body` (Public Sans: prose).
+
 ## Key Gotchas
 
 ### Next.js 16 Specific

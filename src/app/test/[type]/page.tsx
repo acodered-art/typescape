@@ -57,7 +57,7 @@ export default function TestPage({ params }: { params: Promise<{ type: string }>
         <PageTitle title="Tests" aside="No such test on file." />
         <div className="max-w-[560px]">
           <Sheet className="flex flex-col gap-4">
-            <Typed className="text-[14px]">Two tests are on file.</Typed>
+            <Typed className="text-md">Two tests are on file.</Typed>
             <div className="flex flex-wrap gap-3">
               <Btn href="/test/mbti">MBTI test</Btn>
               <Btn href="/test/enneagram">Enneagram test</Btn>
@@ -81,7 +81,7 @@ export default function TestPage({ params }: { params: Promise<{ type: string }>
             {described && (
               <div className="flex flex-col gap-1 border-t-2 border-ink pt-4">
                 <span className="lab">{described.title}</span>
-                <Typed className="text-[15px] leading-[1.5]">{described.text}</Typed>
+                <Typed className="text-lg leading-[1.5]">{described.text}</Typed>
               </div>
             )}
             <div className="flex flex-col-reverse gap-3 border-t-2 border-ink pt-[18px] sm:flex-row sm:justify-end">
@@ -108,13 +108,13 @@ export default function TestPage({ params }: { params: Promise<{ type: string }>
           <div className="h-1 w-full bg-paper-2" aria-hidden="true">
             <div className="h-1 bg-blue" style={{ width: `${(step / totalQuestions) * 100}%` }} />
           </div>
-          <h2 className="font-display text-[28px] font-extrabold uppercase leading-[1.05] md:text-[33px]">{question.text}</h2>
+          <h2 className="font-display text-9xl font-extrabold uppercase leading-[1.05] md:text-11xl">{question.text}</h2>
           <fieldset className="flex flex-col gap-2">
             <legend className="sr-only">Your answer</legend>
             {question.options.map((opt) => {
               const on = answers[question.id] === opt.value;
               return (
-                <label key={opt.value} className={`flex min-h-[44px] cursor-pointer items-center gap-3 px-4 py-[10px] text-[15px] ${on ? "bg-navy text-paper" : "row-fill hover:bg-steel/40"}`}>
+                <label key={opt.value} className={`flex min-h-[44px] cursor-pointer items-center gap-3 px-4 py-[10px] text-lg ${on ? "bg-navy text-paper" : "row-fill hover:bg-steel/40"}`}>
                   <input type="radio" name={`question-${question.id}`} value={opt.value} checked={on} onChange={() => handleAnswer(question.id, opt.value)} className="h-4 w-4 accent-blue" />
                   {opt.label}
                 </label>

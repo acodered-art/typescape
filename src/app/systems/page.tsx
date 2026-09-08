@@ -121,7 +121,7 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
                   </RailRow>
                 ))}
               </div>
-              <p className="font-typed text-[13px] leading-[1.5] text-paper/60">Know one of these? Propose a type list and it opens for reads.</p>
+              <p className="font-typed text-base leading-[1.5] text-paper/60">Know one of these? Propose a type list and it opens for reads.</p>
             </div>
           )}
         </aside>
@@ -130,14 +130,14 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
             <div className="grid min-w-0 flex-1 grid-cols-[96px_minmax(0,1fr)] items-baseline gap-x-3 gap-y-[10px]">
               <div className="lab">System</div>
-              <h1 className="font-display text-[44px] font-extrabold uppercase leading-[0.95] tracking-[0.01em] md:text-[64px]">{shortName(system.name)}</h1>
+              <h1 className="font-display text-13xl font-extrabold uppercase leading-[0.95] tracking-[0.01em] md:text-17xl">{shortName(system.name)}</h1>
               <div className="lab">Full name</div>
-              <div className="ln text-[16px]">{fullName}</div>
+              <div className="ln text-xl">{fullName}</div>
               <div className="lab">Basis</div>
-              <div className="ln text-[16px] max-w-[520px]">{plain(basis)}</div>
+              <div className="ln text-xl max-w-[520px]">{plain(basis)}</div>
             </div>
             {(typed > 0 || read > 0) && (
-              <div className="shrink-0 font-typed text-[12px] leading-[1.7] text-navy sm:text-right">
+              <div className="shrink-0 font-typed text-sm leading-[1.7] text-navy sm:text-right">
                 {typed > 0 && <>{count(typed, "file")} typed<br /></>}
                 {read > 0 && <>{count(read, "read")}</>}
               </div>
@@ -149,11 +149,11 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
               <SectionHead title="Preference pairs" aside="A type is one pick from each pair" />
               <div className="grid gap-x-8 gap-y-[10px] md:grid-cols-2">
                 {pairs.map((d) => (
-                  <div key={d.name} className="grid grid-cols-[40px_minmax(0,1fr)_28px_40px_minmax(0,1fr)] items-center gap-2 text-[15px]">
-                    <span className="border-2 border-navy py-[2px] text-center font-typed text-[16px] font-bold text-navy">{d.options[0].value}</span>
+                  <div key={d.name} className="grid grid-cols-[40px_minmax(0,1fr)_28px_40px_minmax(0,1fr)] items-center gap-2 text-lg">
+                    <span className="border-2 border-navy py-[2px] text-center font-typed text-xl font-bold text-navy">{d.options[0].value}</span>
                     <span>{d.options[0].label}</span>
-                    <span className="text-center font-typed text-[13px] text-steel-2">or</span>
-                    <span className="border-2 border-navy py-[2px] text-center font-typed text-[16px] font-bold text-navy">{d.options[1].value}</span>
+                    <span className="text-center font-typed text-base text-steel-2">or</span>
+                    <span className="border-2 border-navy py-[2px] text-center font-typed text-xl font-bold text-navy">{d.options[1].value}</span>
                     <span>{d.options[1].label}</span>
                   </div>
                 ))}
@@ -167,8 +167,8 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
               <div className="grid gap-[10px] sm:grid-cols-2 md:grid-cols-3">
                 {scales.map((d) => (
                   <div key={d.name} className="row-fill flex flex-col gap-1 px-3 py-[10px]">
-                    <span className="font-display text-[19px] font-bold uppercase tracking-[0.06em]">{d.name}</span>
-                    <Typed className="text-[12px]">{d.options.map((o) => o.label).join(", ")}</Typed>
+                    <span className="font-display text-4xl font-bold uppercase tracking-[0.06em]">{d.name}</span>
+                    <Typed className="text-sm">{d.options.map((o) => o.label).join(", ")}</Typed>
                   </div>
                 ))}
               </div>
@@ -185,13 +185,13 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
                   return (
                     <div key={t.value} className={`flex flex-col gap-2 px-4 py-3 ${n > 0 ? "row-fill" : "dashed"}`}>
                       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <Link href={`/search?type=${encodeURIComponent(t.value)}&system=${system.slug}`} className="font-typed text-[22px] font-bold text-ink hover:text-navy">
+                        <Link href={`/search?type=${encodeURIComponent(t.value)}&system=${system.slug}`} className="font-typed text-6xl font-bold text-ink hover:text-navy">
                           {t.value}
                         </Link>
-                        {name && <span className="font-display text-[19px] font-bold uppercase tracking-[0.06em] text-navy">{name}</span>}
-                        <span className={`ml-auto font-typed text-[12px] ${n > 0 ? "text-navy" : "text-steel-2"}`}>{n > 0 ? count(n, "file") : "no files yet"}</span>
+                        {name && <span className="font-display text-4xl font-bold uppercase tracking-[0.06em] text-navy">{name}</span>}
+                        <span className={`ml-auto font-typed text-sm ${n > 0 ? "text-navy" : "text-steel-2"}`}>{n > 0 ? count(n, "file") : "no files yet"}</span>
                       </div>
-                      <p className="max-w-[720px] text-[14px] leading-[1.5]">{t.description}</p>
+                      <p className="max-w-[720px] text-md leading-[1.5]">{t.description}</p>
                     </div>
                   );
                 })}
@@ -207,13 +207,13 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
                   const n = byType?.get(t.value)?.size ?? 0;
                   return n > 0 ? (
                     <Link key={t.value} href={`/search?type=${encodeURIComponent(t.value)}&system=${system.slug}`} className="row-fill flex flex-col gap-1 px-3 py-[10px] text-ink hover:bg-blue" title={plain(t.label)}>
-                      <span className="font-typed text-[22px] font-bold">{t.value}</span>
-                      <span className="font-typed text-[12px] text-navy">{count(n, "file")}</span>
+                      <span className="font-typed text-6xl font-bold">{t.value}</span>
+                      <span className="font-typed text-sm text-navy">{count(n, "file")}</span>
                     </Link>
                   ) : (
                     <Link key={t.value} href={`/search?type=${encodeURIComponent(t.value)}&system=${system.slug}`} className="dashed flex flex-col gap-1 px-[11px] py-[9px] text-steel-2 hover:border-navy hover:text-navy" title={plain(t.label)}>
-                      <span className="font-typed text-[22px] font-bold">{t.value}</span>
-                      <span className="font-typed text-[12px]">no files yet</span>
+                      <span className="font-typed text-6xl font-bold">{t.value}</span>
+                      <span className="font-typed text-sm">no files yet</span>
                     </Link>
                   );
                 })}
@@ -224,7 +224,7 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
           {wings && wings.length > 0 && (
             <Section>
               <SectionHead title="Wings" />
-              <Typed className="text-[14px]">A read may carry a wing after the type, written {wings[0].value} to {wings[wings.length - 1].value}, as in 5w4.</Typed>
+              <Typed className="text-md">A read may carry a wing after the type, written {wings[0].value} to {wings[wings.length - 1].value}, as in 5w4.</Typed>
             </Section>
           )}
 
@@ -234,8 +234,8 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
               <div className="grid gap-[10px] sm:grid-cols-2">
                 {animals.map((a) => (
                   <div key={a.value} className="row-fill flex flex-col gap-1 px-3 py-[10px]">
-                    <span className="font-typed text-[16px] font-bold">{a.label}</span>
-                    {a.description && <span className="text-[13px] leading-[1.45]">{plain(a.description)}</span>}
+                    <span className="font-typed text-xl font-bold">{a.label}</span>
+                    {a.description && <span className="text-base leading-[1.45]">{plain(a.description)}</span>}
                   </div>
                 ))}
               </div>
@@ -248,7 +248,7 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
               <div className="flex flex-col gap-[10px]">
                 {facets.map((f) => (
                   <div key={f.dimension} className="grid gap-1 border-b border-paper-2 pb-[10px] md:grid-cols-[180px_minmax(0,1fr)] md:gap-4">
-                    <span className="font-display text-[19px] font-bold uppercase tracking-[0.06em]">{f.dimension}</span>
+                    <span className="font-display text-4xl font-bold uppercase tracking-[0.06em]">{f.dimension}</span>
                     <Typed className="leading-[1.5]">{f.facets.map((x) => x.label).join(", ")}</Typed>
                   </div>
                 ))}
@@ -259,7 +259,7 @@ export default async function SystemsPage({ searchParams }: { searchParams: Prom
           {levels && levels.length > 0 && (
             <Section>
               <SectionHead title="Levels of health" />
-              <Typed className="text-[14px] leading-[1.5]">
+              <Typed className="text-md leading-[1.5]">
                 Every type is read at one of {levels.length} levels, from {plain(levels[0].label)} down to {plain(levels[levels.length - 1].label)}.
               </Typed>
             </Section>

@@ -114,7 +114,7 @@ export function CreateProfileForm({ initialName }: { initialName?: string }) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-[22px]">
         <div className="grid grid-cols-[96px_minmax(0,1fr)] items-baseline gap-x-3 gap-y-4">
           <label htmlFor="name" className="lab">Subject</label>
-          <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Lelouch vi Britannia" required autoFocus className="input-paper font-display text-[28px] font-extrabold uppercase" />
+          <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Lelouch vi Britannia" required autoFocus className="input-paper font-display text-9xl font-extrabold uppercase" />
 
           <label htmlFor="image" className="lab">Portrait</label>
           <input id="image" type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://example.com/portrait.jpg (a moderator reviews it)" className="input-paper" />
@@ -125,7 +125,7 @@ export function CreateProfileForm({ initialName }: { initialName?: string }) {
           <label htmlFor="source" className="lab self-start pt-2">Source</label>
           <div className="flex flex-col gap-2">
             {selected && !searchTerm ? (
-              <Typed className="text-[14px]">
+              <Typed className="text-md">
                 Filed under {selected.name}{selectedParent ? `, in ${selectedParent.name}` : ""}.{" "}
                 <button type="button" onClick={() => { setCategoryId(""); setSearchTerm(""); }} className="text-blue underline hover:text-navy">Change</button>
               </Typed>
@@ -135,16 +135,16 @@ export function CreateProfileForm({ initialName }: { initialName?: string }) {
             {fetching && <Typed>Opening the cabinet.</Typed>}
             {showDrawers && (
               <div className="flex max-h-48 flex-col gap-[2px] overflow-y-auto border border-steel p-1">
-                <button type="button" onClick={() => { setCategoryId(""); setSearchTerm(""); }} className={`px-2 py-[6px] text-left font-typed text-[13px] ${!categoryId && !searchTerm ? "bg-navy text-paper" : "text-navy hover:bg-paper-2"}`}>
+                <button type="button" onClick={() => { setCategoryId(""); setSearchTerm(""); }} className={`px-2 py-[6px] text-left font-typed text-base ${!categoryId && !searchTerm ? "bg-navy text-paper" : "text-navy hover:bg-paper-2"}`}>
                   Unfiled
                 </button>
                 {filtered.map((c) =>
                   c.isParent ? (
-                    <button key={c.id} type="button" onClick={() => { setCategoryId(""); setSearchTerm(c.label); }} className="px-2 pb-1 pt-2 text-left font-display text-[14px] font-bold uppercase tracking-[0.1em] text-steel-2 hover:text-navy">
+                    <button key={c.id} type="button" onClick={() => { setCategoryId(""); setSearchTerm(c.label); }} className="px-2 pb-1 pt-2 text-left font-display text-md font-bold uppercase tracking-[0.1em] text-steel-2 hover:text-navy">
                       {c.label}
                     </button>
                   ) : (
-                    <button key={c.id} type="button" onClick={() => { setCategoryId(c.id); setSearchTerm(""); }} className={`px-4 py-[6px] text-left font-typed text-[13px] ${categoryId === c.id ? "bg-navy text-paper" : "text-ink hover:bg-paper-2"}`}>
+                    <button key={c.id} type="button" onClick={() => { setCategoryId(c.id); setSearchTerm(""); }} className={`px-4 py-[6px] text-left font-typed text-base ${categoryId === c.id ? "bg-navy text-paper" : "text-ink hover:bg-paper-2"}`}>
                       {c.label}
                     </button>
                   )

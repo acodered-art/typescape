@@ -118,7 +118,7 @@ export function TraitRadar({
         </g>
       </svg>
 
-      <figcaption className="flex flex-wrap gap-x-4 gap-y-1 font-typed text-[12px]">
+      <figcaption className="flex flex-wrap gap-x-4 gap-y-1 font-typed text-sm">
         {series.map((s) => (
           <span key={s.label} className="flex items-center gap-1.5">
             <span className={`inline-block h-2.5 w-2.5 border ${strokeFor(s.tone)} ${fillFor(s.tone)}`} style={{ opacity: 0.7 }} />
@@ -159,13 +159,13 @@ export function TraitDiff({
   const gapWidth = (d: number) => `${Math.min(100, (Math.abs(d) / 6) * 100)}%`;
 
   return (
-    <table className="w-full font-typed text-[12px]">
+    <table className="w-full font-typed text-sm">
       <caption className="sr-only">
         Per-axis difference between {aLabel} and {bLabel}
       </caption>
       <thead>
         <tr className="border-b border-ink text-left">
-          <th scope="col" className="py-1 font-display text-[13px] uppercase tracking-[0.1em]">Trait</th>
+          <th scope="col" className="py-1 font-display text-base uppercase tracking-[0.1em]">Trait</th>
           <th scope="col" className="py-1 text-right">{aLabel}</th>
           <th scope="col" className="py-1 text-right">{bLabel}</th>
           <th scope="col" className="py-1">Gap</th>
@@ -174,7 +174,7 @@ export function TraitDiff({
       <tbody>
         {rows.map(({ axis, a: av, b: bv, delta }) => (
           <tr key={axis.slug} className="border-b border-steel/40">
-            <th scope="row" className="py-1 pr-2 text-left font-body text-[13px] font-normal" title={`${axis.lowLabel} to ${axis.highLabel}`}>
+            <th scope="row" className="py-1 pr-2 text-left font-body text-base font-normal" title={`${axis.lowLabel} to ${axis.highLabel}`}>
               {axis.name}
             </th>
             <td className="py-1 text-right">{signed(av)}</td>
@@ -187,7 +187,7 @@ export function TraitDiff({
                     style={{ width: gapWidth(delta) }}
                   />
                 </span>
-                <span className="w-[34px] text-right text-[11px] text-navy">{signed(delta)}</span>
+                <span className="w-[34px] text-right text-xs text-navy">{signed(delta)}</span>
               </span>
             </td>
           </tr>

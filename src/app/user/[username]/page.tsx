@@ -199,9 +199,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             </div>
             <FieldGrid className="min-w-0 flex-1 md:pr-[250px]">
               <div className="lab">Reader</div>
-              <h1 className="flex flex-wrap items-baseline gap-3 font-display text-[40px] font-extrabold uppercase leading-[0.95] tracking-[0.01em] md:text-[64px]">
+              <h1 className="flex flex-wrap items-baseline gap-3 font-display text-12xl font-extrabold uppercase leading-[0.95] tracking-[0.01em] md:text-17xl">
                 {user.username}
-                {role && role !== "user" && <InkTag className="text-[12px]">{role}</InkTag>}
+                {role && role !== "user" && <InkTag className="text-sm">{role}</InkTag>}
               </h1>
               <Field label="Since">{since}</Field>
               <Field label="Standing">
@@ -246,12 +246,12 @@ export default async function UserPage({ params }: { params: Promise<{ username:
           <Section>
             <SectionHead title="Recent reads" aside={user._count.typings > 0 ? `${user._count.typings} on file` : "None on file"} />
             {user.typings.length === 0 ? (
-              <Typed className="text-[14px]">{isMe ? "You have not read a character yet. Open a file and add your read." : "No reads on file yet."}</Typed>
+              <Typed className="text-md">{isMe ? "You have not read a character yet. Open a file and add your read." : "No reads on file yet."}</Typed>
             ) : (
               <div className="flex flex-col">
                 {user.typings.map((t, i) => (
                   <div key={t.profile.slug + t.typingSystem.slug + t.typeValue + t.createdAt} className={`grid items-center gap-x-4 gap-y-1 py-[9px] md:grid-cols-[250px_190px_minmax(0,1fr)_110px] ${i < user.typings.length - 1 ? "border-b border-paper-2" : ""}`}>
-                    <Link href={`/profiles/${t.profile.slug}`} className="truncate font-display text-[22px] font-extrabold uppercase leading-none text-ink hover:text-navy">
+                    <Link href={`/profiles/${t.profile.slug}`} className="truncate font-display text-6xl font-extrabold uppercase leading-none text-ink hover:text-navy">
                       {t.profile.name}
                     </Link>
                     <div className="flex items-center gap-2">
@@ -259,7 +259,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                       <Typed>{t.typingSystem.name}</Typed>
                     </div>
                     {consensus[i] ? <Typed>{consensus[i]}</Typed> : <span className="hidden md:block" />}
-                    <span className="font-typed text-[12px] text-steel-2 md:text-right">{timeAgo(t.createdAt)}</span>
+                    <span className="font-typed text-sm text-steel-2 md:text-right">{timeAgo(t.createdAt)}</span>
                   </div>
                 ))}
               </div>
@@ -269,7 +269,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
           <Section>
             <SectionHead title="Collections" aside={user._count.collections > 0 ? count(user._count.collections, "collection") : "None yet"} />
             {user.collections.length === 0 ? (
-              <Typed className="text-[14px]">
+              <Typed className="text-md">
                 {isMe ? (
                   <>
                     No collections yet. <Link href="/collections" className="underline">Start one</Link>.
@@ -282,7 +282,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               <div className="grid gap-3 md:grid-cols-2">
                 {user.collections.map((c) => (
                   <Link key={c.id} href={`/collections/${c.slug}`} className="flex flex-col gap-1 border border-steel px-4 py-[14px] text-ink hover:border-blue">
-                    <span className="font-display text-[26px] font-extrabold uppercase leading-[0.95]">{c.name}</span>
+                    <span className="font-display text-8xl font-extrabold uppercase leading-[0.95]">{c.name}</span>
                     <Typed>{count(c._count.items, "file")}.{c.description ? ` ${c.description}` : ""}</Typed>
                   </Link>
                 ))}

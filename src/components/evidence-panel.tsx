@@ -134,15 +134,15 @@ export function EvidencePanel({ typingId, code, systemName, subject, certified =
           <span className="lab">Exhibit {letter(i)}</span>
           <Typed>{sourceOf(e)}</Typed>
         </div>
-        <div className="ruled whitespace-pre-wrap text-[15px]">{e.evidenceText}</div>
+        <div className="ruled whitespace-pre-wrap text-lg">{e.evidenceText}</div>
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-ink pt-[10px]">
           {code && (
-            <div className="flex items-center gap-2 font-typed text-[13px] text-navy">
+            <div className="flex items-center gap-2 font-typed text-base text-navy">
               Supports <CodeChip tone={certified ? "blue" : "navy"}>{code}</CodeChip> {systemName}
             </div>
           )}
           <div className="flex flex-wrap items-center gap-3">
-            <span className="font-typed text-[12px] text-steel-2">Filed by {e.user.username}</span>
+            <span className="font-typed text-sm text-steel-2">Filed by {e.user.username}</span>
             <Btn variant="small" onClick={() => handleVote(e.id, 1)} disabled={own} className={mine === 1 ? "bg-blue text-ink" : ""} title={own ? "Your own exhibit" : "This exhibit convinces me"}>
               Convincing ({e.voteCount})
             </Btn>
@@ -163,16 +163,16 @@ export function EvidencePanel({ typingId, code, systemName, subject, certified =
       {showForm ? (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1">
-            <span className="lab text-[13px]">The exhibit</span>
+            <span className="lab text-base">The exhibit</span>
             <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={`A quote, a scene, or what ${who} does that shows the read.`} rows={3} className="input-paper resize-y" />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1">
-              <span className="lab text-[13px]">Source</span>
+              <span className="lab text-base">Source</span>
               <input value={sourceLabel} onChange={(e) => setSourceLabel(e.target.value)} placeholder="Episode, chapter, interview" className="input-paper" />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="lab text-[13px]">Link</span>
+              <span className="lab text-base">Link</span>
               <input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://" className="input-paper" />
             </label>
           </div>
@@ -186,7 +186,7 @@ export function EvidencePanel({ typingId, code, systemName, subject, certified =
         </form>
       ) : (
         <div className="flex flex-col gap-2">
-          <Typed className="text-[14px] leading-[1.5]">
+          <Typed className="text-md leading-[1.5]">
             {evidence.length === 0 ? "Nothing filed on this read yet." : `This read has ${evidence.length} ${evidence.length === 1 ? "exhibit" : "exhibits"}.`} Add a quote, a scene, or a screenshot that shows how {who} thinks.{" "}
             <button type="button" onClick={() => { setShowForm(true); setNote(""); }} className="text-blue underline hover:text-navy">
               Submit evidence

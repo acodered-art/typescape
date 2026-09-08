@@ -24,6 +24,47 @@
   --font-display: var(--font-big-shoulders), Impact, "Arial Narrow", sans-serif;
   --font-typed: var(--font-courier-prime), "Courier New", monospace;
   --font-body: var(--font-public-sans), "Helvetica Neue", Arial, sans-serif;
+
+  /* ---- type scale ----------------------------------------------------------
+     Named sizes for the whole site. Change a value here and every use moves.
+     The site is in beta and the type is the thing most often nudged, so nothing
+     should hard-code a px size in a component. If you need a new step, add a
+     name here rather than writing `text-[17px]` inline.
+
+     px-*  = prose and UI text (body font or typed font)
+     d-*   = display headings (Big Shoulders)
+     ------------------------------------------------------------------------- */
+  --text-3xs: 9px;
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 15px;
+  --text-xl: 16px;
+  --text-2xl: 17px;
+  --text-3xl: 18px;
+  --text-4xl: 19px;
+  --text-5xl: 20px;
+  --text-6xl: 22px;
+  --text-7xl: 24px;
+  --text-8xl: 26px;
+  --text-9xl: 28px;
+  --text-10xl: 30px;
+  --text-11xl: 33px;
+  --text-12xl: 40px;
+  --text-13xl: 44px;
+  --text-14xl: 48px;
+  --text-15xl: 62px;
+  --text-16xl: 64px;
+  --text-17xl: 96px;
+
+  /* ---- control height: one knob for every button, input and select -------- */
+  --spacing-control: 36px;
+  --spacing-control-sm: 28px;
+
+  /* ---- the phone breakpoint used across the layout ------------------------ */
+  --breakpoint-phone: 640px;
 }
 
 @layer base {

@@ -4,7 +4,7 @@ import { Btn, FolderTab, Sheet, TabStrip, Typed } from "@/components/dossier";
 import { FormNote } from "@/components/dossier/modal";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 
-const FIELD = "w-full border-0 border-b border-steel bg-transparent px-0 py-1 font-typed text-[16px] text-ink outline-none placeholder:text-steel-2 focus:border-blue";
+const FIELD = "w-full border-0 border-b border-steel bg-transparent px-0 py-1 font-typed text-xl text-ink outline-none placeholder:text-steel-2 focus:border-blue";
 
 /** Sign in or open a reader file: two folder tabs over one sheet, fields as typed values on a rule, one primary button, the OAuth providers under a typed "or". */
 export default function SignInPage() {
@@ -78,7 +78,7 @@ export default function SignInPage() {
         <FolderTab active={mode === "signup"} onClick={() => switchMode("signup")}>New reader</FolderTab>
       </TabStrip>
       <Sheet className="flex flex-col gap-6">
-        <Typed className="text-[14px]">{mode === "signin" ? "Sign in to vote, file notes, and open files." : "Open a reader file and start reading."}</Typed>
+        <Typed className="text-md">{mode === "signin" ? "Sign in to vote, file notes, and open files." : "Open a reader file and start reading."}</Typed>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-[96px_minmax(0,1fr)] items-baseline gap-x-3 gap-y-5">
           {mode === "signup" && (
@@ -114,7 +114,7 @@ export default function SignInPage() {
           <a href="/api/auth/signin/discord" className="btn justify-center sm:flex-1">Sign in with Discord</a>
         </div>
 
-        <Typed className="text-[14px]">
+        <Typed className="text-md">
           {mode === "signin" ? (
             <>
               New here?{" "}

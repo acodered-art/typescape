@@ -217,7 +217,7 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
         <button type="button" onClick={() => handleVote(comment.id, 1)} className="hover:text-blue" aria-pressed={myVote === 1} title="Agree with this note">
           {myVote === 1 ? <Triangle up size={size} /> : <Chevron up size={size} />}
         </button>
-        <span className="font-typed text-[14px] font-bold">{comment.voteCount}</span>
+        <span className="font-typed text-md font-bold">{comment.voteCount}</span>
         <button type="button" onClick={() => handleVote(comment.id, -1)} className="hover:text-blue" aria-pressed={myVote === -1} title="Disagree with this note">
           {myVote === -1 ? <Triangle up={false} size={size} /> : <Chevron up={false} size={size} />}
         </button>
@@ -231,10 +231,10 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
       <div className="flex min-w-0 flex-col gap-2">
         <div className="flex items-baseline justify-between gap-3">
           <div className="flex flex-wrap items-center gap-[10px] font-typed">
-            <Link href={`/user/${comment.user.username}`} className="text-[14px] font-bold text-ink hover:text-blue">
+            <Link href={`/user/${comment.user.username}`} className="text-md font-bold text-ink hover:text-blue">
               {comment.user.username || "anonymous"}
             </Link>
-            <span className="text-[12px] text-steel-2">
+            <span className="text-sm text-steel-2">
               {comment.user.reputation === 0 ? "new reader, " : ""}
               {timeAgo(comment.createdAt)}
             </span>
@@ -245,29 +245,29 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
                 type="button"
                 onClick={() => report(comment.id)}
                 disabled={reporting === comment.id}
-                className="font-typed text-[12px] font-bold tracking-[0.1em] text-steel-2 hover:text-navy"
+                className="font-typed text-sm font-bold tracking-[0.1em] text-steel-2 hover:text-navy"
                 title="Send this to a moderator"
               >
                 {reporting === comment.id ? "SENT" : "REPORT"}
               </button>
             )}
             {!isReply && !comment.isRemoved && !comment.isLocked && (
-              <button type="button" onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)} className="font-typed text-[12px] font-bold tracking-[0.1em] text-blue hover:text-navy">
+              <button type="button" onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)} className="font-typed text-sm font-bold tracking-[0.1em] text-blue hover:text-navy">
                 {replyTo === comment.id ? "CLOSE" : "REPLY"}
               </button>
             )}
           </div>
         </div>
         {comment.isRemoved ? (
-          <p className="max-w-[620px] font-typed text-[14px] italic text-steel-2">
+          <p className="max-w-[620px] font-typed text-md italic text-steel-2">
             {comment.body}
           </p>
         ) : (
-          <p className="max-w-[620px] whitespace-pre-wrap text-[15px] leading-[1.55]">{comment.body}</p>
+          <p className="max-w-[620px] whitespace-pre-wrap text-lg leading-[1.55]">{comment.body}</p>
         )}
 
         {comment.isLocked && (
-          <span className="font-typed text-[11px] uppercase tracking-[0.12em] text-navy">
+          <span className="font-typed text-xs uppercase tracking-[0.12em] text-navy">
             Thread locked
           </span>
         )}
@@ -316,7 +316,7 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Cite a scene or an exhibit. Your handle is signed underneath."
             rows={3}
-            className="ruled min-h-[66px] w-full resize-y bg-transparent text-[15px] text-ink outline-none placeholder:text-steel-2"
+            className="ruled min-h-[66px] w-full resize-y bg-transparent text-lg text-ink outline-none placeholder:text-steel-2"
           />
         </label>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -329,7 +329,7 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
               </>
             )}
           </Typed>
-          <Btn type="submit" variant="primary" disabled={submitting || !newComment.trim()} className="text-[17px]">
+          <Btn type="submit" variant="primary" disabled={submitting || !newComment.trim()} className="text-2xl">
             {submitting ? "Filing" : "File note"}
           </Btn>
         </div>
@@ -339,7 +339,7 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
       {loading ? (
         <Typed>Opening the notes.</Typed>
       ) : ordered.length === 0 ? (
-        <Typed className="text-[14px]">No notes on this file yet. File the first one.</Typed>
+        <Typed className="text-md">No notes on this file yet. File the first one.</Typed>
       ) : (
         <div className="flex flex-col">{ordered.map((comment, i) => renderComment(comment, false, i === ordered.length - 1))}</div>
       )}

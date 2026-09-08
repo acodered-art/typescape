@@ -135,11 +135,11 @@ export function DisorderVotePanel({ profileSlug }: { profileSlug: string }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <Typed className="text-[14px]">
+        <Typed className="text-md">
           {voteData && voteData.totalVotes > 0 ? `${voteData.totalVotes} ${voteData.totalVotes === 1 ? "reader has" : "readers have"} filed a pattern directly.` : "No pattern filed directly yet. Mark the one that fits."}
         </Typed>
         {comorbidities.length > 0 && (
-          <button type="button" onClick={() => setShowGraph(!showGraph)} className="font-typed text-[13px] text-blue underline hover:text-navy">
+          <button type="button" onClick={() => setShowGraph(!showGraph)} className="font-typed text-base text-blue underline hover:text-navy">
             {showGraph ? "Hide the co-morbidity table" : "Co-morbidity table"}
           </button>
         )}
@@ -151,7 +151,7 @@ export function DisorderVotePanel({ profileSlug }: { profileSlug: string }) {
         <div className="row-fill flex flex-col gap-1 px-3 py-3">
           <span className="lab">Patterns that travel together</span>
           {comorbidities.map((c) => (
-            <div key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_44px] items-baseline gap-2 font-typed text-[13px]" title={c.description ?? undefined}>
+            <div key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_44px] items-baseline gap-2 font-typed text-base" title={c.description ?? undefined}>
               <span className="truncate">{c.disorderA.name}</span>
               <span className="text-steel-2">with</span>
               <span className="truncate">{c.disorderB.name}</span>
@@ -170,7 +170,7 @@ export function DisorderVotePanel({ profileSlug }: { profileSlug: string }) {
               const isMyVote = voteData?.myVote?.disorderId === d.id;
               const pct = breakdown?.percentage ?? 0;
               return (
-                <div key={d.id} className="grid grid-cols-[18px_minmax(0,1fr)_44px] items-center gap-3 text-[14px] md:grid-cols-[18px_180px_minmax(0,1fr)_44px_60px]">
+                <div key={d.id} className="grid grid-cols-[18px_minmax(0,1fr)_44px] items-center gap-3 text-md md:grid-cols-[18px_180px_minmax(0,1fr)_44px_60px]">
                   <button
                     type="button"
                     onClick={() => handleVote(d.id)}
@@ -181,8 +181,8 @@ export function DisorderVotePanel({ profileSlug }: { profileSlug: string }) {
                   />
                   <span className={`truncate ${isMyVote ? "font-semibold" : ""}`} title={d.description ?? undefined}>{d.name}</span>
                   <div className="hidden h-2 bg-paper-2 md:block">{pct > 0 && <div className="h-2 bg-blue" style={{ width: `${pct}%` }} />}</div>
-                  <span className={`text-right font-typed text-[13px] font-bold ${isMyVote ? "text-blue" : "text-navy"}`}>{breakdown ? `${pct}%` : ""}</span>
-                  <span className="hidden text-right font-typed text-[12px] text-steel-2 md:block">{breakdown && breakdown.count > 0 ? `${breakdown.count} ${breakdown.count === 1 ? "vote" : "votes"}` : ""}</span>
+                  <span className={`text-right font-typed text-base font-bold ${isMyVote ? "text-blue" : "text-navy"}`}>{breakdown ? `${pct}%` : ""}</span>
+                  <span className="hidden text-right font-typed text-sm text-steel-2 md:block">{breakdown && breakdown.count > 0 ? `${breakdown.count} ${breakdown.count === 1 ? "vote" : "votes"}` : ""}</span>
                 </div>
               );
             })}

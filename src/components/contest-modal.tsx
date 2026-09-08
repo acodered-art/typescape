@@ -84,7 +84,7 @@ export function ContestModal({
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <Typed className="text-[13px] leading-[1.5]">
+          <Typed className="text-base leading-[1.5]">
             Say why this reading is wrong and cite where you know it from. A bare downvote is
             not enough — the argument is the point.
           </Typed>
@@ -96,9 +96,9 @@ export function ContestModal({
               rows={4}
               maxLength={2000}
               placeholder="In chapter 12 he explicitly refuses to…"
-              className="w-full border border-steel bg-paper px-2 py-1 font-body text-[14px] text-ink outline-none focus:border-blue"
+              className="w-full border border-steel bg-paper px-2 py-1 font-body text-md text-ink outline-none focus:border-blue"
             />
-            <span className="text-right font-typed text-[11px] text-steel-2">
+            <span className="text-right font-typed text-xs text-steel-2">
               {reason.length}/2000
             </span>
           </label>
@@ -109,7 +109,7 @@ export function ContestModal({
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
               placeholder="https://…"
-              className="w-full border border-steel bg-paper px-2 py-1 font-typed text-[13px] text-ink outline-none focus:border-blue"
+              className="w-full border border-steel bg-paper px-2 py-1 font-typed text-base text-ink outline-none focus:border-blue"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -120,7 +120,7 @@ export function ContestModal({
               onChange={(e) => setSourceLabel(e.target.value)}
               maxLength={100}
               placeholder="Volume 3, page 44"
-              className="w-full border border-steel bg-paper px-2 py-1 font-body text-[14px] text-ink outline-none focus:border-blue"
+              className="w-full border border-steel bg-paper px-2 py-1 font-body text-md text-ink outline-none focus:border-blue"
             />
           </label>
           {error && <FormNote error>{error}</FormNote>}

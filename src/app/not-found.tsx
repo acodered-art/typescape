@@ -7,8 +7,8 @@ export default function NotFound() {
     <div className="pb-10 pt-9">
       <div className="max-w-[560px]">
         <Sheet className="flex flex-col gap-4">
-          <div className="font-display text-[48px] font-extrabold uppercase leading-none">No such file.</div>
-          <Typed className="text-[14px] leading-[1.5]">
+          <div className="font-display text-14xl font-extrabold uppercase leading-none">No such file.</div>
+          <Typed className="text-md leading-[1.5]">
             Nothing is filed at this address. It may have been removed, or the address has a typo.{" "}
             <Link href="/" className="underline">Back to the cabinet</Link>.
           </Typed>

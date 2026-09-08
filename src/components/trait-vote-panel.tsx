@@ -235,7 +235,7 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
         <div className="border border-ink">
           <TraitMap breakdown={voteData?.breakdown ?? []} surveyed={surveyed} />
         </div>
-        <Typed className="text-[12px] leading-[1.5]">
+        <Typed className="text-sm leading-[1.5]">
           {surveyed > 0
             ? "Rings show how closely the community survey matches each pattern. The crosshair sits between the closest ones."
             : "The map fills in as readers survey this character across twelve traits."}
@@ -260,24 +260,24 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
       <div className="flex flex-col gap-[10px]">
         {surveyed > 0 && nearest.length > 0 && (
           <>
-            <div className="font-display text-[20px] font-extrabold uppercase tracking-[0.12em]">Nearest pattern</div>
+            <div className="font-display text-5xl font-extrabold uppercase tracking-[0.12em]">Nearest pattern</div>
             {nearest.map((b, i) => (
-              <div key={b.disorderId} className="grid grid-cols-[120px_minmax(0,1fr)_40px] items-center gap-[10px] text-[14px]">
+              <div key={b.disorderId} className="grid grid-cols-[120px_minmax(0,1fr)_40px] items-center gap-[10px] text-md">
                 <span className="truncate" title={b.disorderName}>{b.disorderName}</span>
                 <div className="h-2 bg-paper-2">
                   <div className={`h-2 ${i < 2 ? "bg-blue" : "bg-steel"}`} style={{ width: `${Math.min(100, b.percentage)}%` }} />
                 </div>
-                <span className={`text-right font-typed text-[13px] ${i < 2 ? "font-bold text-blue" : "text-navy"}`}>{b.percentage}%</span>
+                <span className={`text-right font-typed text-base ${i < 2 ? "font-bold text-blue" : "text-navy"}`}>{b.percentage}%</span>
               </div>
             ))}
-            <div className="border-t border-ink pt-[10px] font-typed text-[14px] leading-[1.5]">{readSentence}</div>
-            {voteData?.description && <p className="text-[14px] leading-[1.5]">{voteData.description}</p>}
+            <div className="border-t border-ink pt-[10px] font-typed text-md leading-[1.5]">{readSentence}</div>
+            {voteData?.description && <p className="text-md leading-[1.5]">{voteData.description}</p>}
             {voteData?.invertedPhrase && (
               <div className="mt-2 border-t border-steel pt-3">
                 <div className="lab mb-1">Reads against the pattern</div>
-                <div className="font-typed text-[14px] leading-[1.5]">{voteData.invertedPhrase}.</div>
+                <div className="font-typed text-md leading-[1.5]">{voteData.invertedPhrase}.</div>
                 {voteData.inversions?.slice(0, 3).map((inv) => (
-                  <div key={inv.slug} className="mt-1 text-[13px] leading-[1.5] text-navy">
+                  <div key={inv.slug} className="mt-1 text-base leading-[1.5] text-navy">
                     <span className="font-typed">{inv.name}</span>: the community reads{" "}
                     <strong>{inv.communityLabel}</strong>, where the pattern expects{" "}
                     {inv.patternLabel}.
@@ -289,16 +289,16 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
               <div className="mt-2 border-t border-steel pt-3">
                 <div className="lab mb-1">Reads as a blend</div>
                 {voteData.comorbidities.slice(0, 3).map((c, i) => (
-                  <div key={i} className="flex items-baseline justify-between gap-3 text-[13px]">
+                  <div key={i} className="flex items-baseline justify-between gap-3 text-base">
                     <span className="truncate" title={`${c.a.name} + ${c.b.name}`}>
                       {shortName(c.a.name)} + {shortName(c.b.name)}
                     </span>
-                    <span className="shrink-0 font-typed text-[12px] text-navy">
+                    <span className="shrink-0 font-typed text-sm text-navy">
                       {c.a.percentage}% / {c.b.percentage}%
                     </span>
                   </div>
                 ))}
-                <Typed className="mt-1 text-[11px]">
+                <Typed className="mt-1 text-xs">
                   Both patterns clear 20% of the read, so the survey sees a mix rather than one label.
                 </Typed>
               </div>
@@ -308,12 +308,12 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
 
         {strongest.length > 0 && (
           <>
-            <div className="mt-2 font-display text-[20px] font-extrabold uppercase tracking-[0.12em]">Strongest traits</div>
+            <div className="mt-2 font-display text-5xl font-extrabold uppercase tracking-[0.12em]">Strongest traits</div>
             {strongest.map(({ trait, avg }) => (
-              <div key={trait.id} className="grid grid-cols-[130px_minmax(0,1fr)_44px] items-center gap-[10px] text-[14px]">
+              <div key={trait.id} className="grid grid-cols-[130px_minmax(0,1fr)_44px] items-center gap-[10px] text-md">
                 <span className="truncate" title={`${trait.lowLabel} to ${trait.highLabel}`}>{trait.name}</span>
                 <TraitBoxes avg={avg} />
-                <span className="text-right font-typed text-[13px]">{signed(avg)}</span>
+                <span className="text-right font-typed text-base">{signed(avg)}</span>
               </div>
             ))}
           </>
@@ -341,15 +341,15 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
               const avgBox = Math.max(-3, Math.min(3, Math.round(communityAvg)));
               return (
                 <div key={trait.id} className="flex flex-col gap-1">
-                  <div className="flex items-baseline justify-between gap-2 text-[14px]">
+                  <div className="flex items-baseline justify-between gap-2 text-md">
                     <span title={trait.description ?? undefined}>{trait.name}</span>
-                    <span className="font-typed text-[12px] text-navy">
+                    <span className="font-typed text-sm text-navy">
                       {myVal !== undefined ? `you ${signed(myVal)}, ` : ""}
                       community {signed(communityAvg)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-[72px] shrink-0 truncate font-typed text-[11px] text-steel-2" title={trait.lowLabel}>{trait.lowLabel}</span>
+                    <span className="w-[72px] shrink-0 truncate font-typed text-xs text-steel-2" title={trait.lowLabel}>{trait.lowLabel}</span>
                     <div className="flex flex-1 justify-between">
                       {[-3, -2, -1, 0, 1, 2, 3].map((val) => {
                         const mine = myVal === val;
@@ -367,7 +367,7 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
                         );
                       })}
                     </div>
-                    <span className="w-[72px] shrink-0 truncate text-right font-typed text-[11px] text-steel-2" title={trait.highLabel}>{trait.highLabel}</span>
+                    <span className="w-[72px] shrink-0 truncate text-right font-typed text-xs text-steel-2" title={trait.highLabel}>{trait.highLabel}</span>
                   </div>
                 </div>
               );

@@ -27,15 +27,15 @@ export default function EmbedPage() {
       <PageTitle title="Embed a card" aside="No key, no account, no tracking." />
       <div className="flex max-w-[860px] flex-col gap-8">
         <Sheet className="flex flex-col gap-3 p-5">
-          <Typed className="text-[15px] leading-[1.6]">
+          <Typed className="text-lg leading-[1.6]">
             Put a character&apos;s card on any page — a blog post, a wiki, a forum signature.
             The script fetches the card data and renders it inline, so it inherits your page&apos;s
             typography, width, and scrolling instead of sitting in an iframe.
           </Typed>
-          <pre className="overflow-x-auto border border-steel bg-paper-2 p-3 font-typed text-[12px] leading-[1.6] text-ink">
+          <pre className="overflow-x-auto border border-steel bg-paper-2 p-3 font-typed text-sm leading-[1.6] text-ink">
             <code>{snippet}</code>
           </pre>
-          <Typed className="text-[13px] leading-[1.6] text-navy">
+          <Typed className="text-base leading-[1.6] text-navy">
             Use the profile slug from the URL — <code className="font-typed">/profiles/naruto-uzumaki</code>{" "}
             means <code className="font-typed">naruto-uzumaki</code>. Data is cached for five minutes and
             refreshes on its own. If the request fails for any reason the host page is left
@@ -51,7 +51,7 @@ export default function EmbedPage() {
 
         <Sheet className="flex flex-col gap-2 p-5">
           <SectionHead title="Data endpoint" size={20} />
-          <Typed className="text-[13px] leading-[1.6]">
+          <Typed className="text-base leading-[1.6]">
             The card reads{" "}
             <code className="font-typed">GET /api/embed/card?slug=&lt;slug&gt;</code>, which is
             public and CORS-open. It returns the name, image, category, description, and up to

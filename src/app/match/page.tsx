@@ -20,7 +20,7 @@ export default function MatchPage() {
     <div className="pb-10">
       <PageTitle title="Which character are you?" aside="No account needed." />
       <div className="max-w-[860px]">
-        <Typed className="mb-4 block text-[14px] leading-[1.55]">
+        <Typed className="mb-4 block text-md leading-[1.55]">
           Pick the reading that fits you and we rank every file in the database by how many of
           your types it shares. Nothing is stored and you do not need to sign in.
         </Typed>

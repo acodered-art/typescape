@@ -165,25 +165,25 @@ export default async function HomePage() {
       {/* The front of the cabinet: thesis, typed search, two files on the desk */}
       <section className="grid items-center gap-10 pb-11 pt-7 md:grid-cols-[minmax(0,1fr)_420px] md:pt-14">
         <div className="flex flex-col gap-[18px]">
-          <h1 className="font-display text-[62px] font-extrabold uppercase leading-[0.92] tracking-[0.01em] md:text-[96px]">
+          <h1 className="font-display text-16xl font-extrabold uppercase leading-[0.92] tracking-[0.01em] md:text-18xl">
             Personality,
             <br />
             on the record.
           </h1>
-          <p className="max-w-[540px] text-[16px] leading-[1.5] text-paper/75 md:text-[19px]">
+          <p className="max-w-[540px] text-xl leading-[1.5] text-paper/75 md:text-4xl">
             How fictional characters and public figures are typed across 20 systems, with evidence attached and a vote on every reading.
           </p>
           <form action="/search" method="get" role="search" className="mt-1 flex max-w-[560px] md:mt-[10px]">
             <label className="relative min-w-0 flex-1">
               <span className="sr-only">Search the files</span>
               <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-navy md:left-4" />
-              <input name="q" type="text" placeholder="Character, series, or type code" className="input-desk h-[50px] pl-9 text-[14px] md:h-14 md:pl-11 md:text-[16px]" />
+              <input name="q" type="text" placeholder="Character, series, or type code" className="input-desk h-[50px] pl-9 text-md md:h-14 md:pl-11 md:text-xl" />
             </label>
-            <button type="submit" className="font-display h-[50px] shrink-0 bg-blue px-[18px] text-[20px] font-extrabold uppercase tracking-[0.12em] text-ink hover:bg-paper md:h-14 md:px-[26px] md:text-[22px]">
+            <button type="submit" className="font-display h-[50px] shrink-0 bg-blue px-[18px] text-5xl font-extrabold uppercase tracking-[0.12em] text-ink hover:bg-paper md:h-14 md:px-[26px] md:text-6xl">
               Search
             </button>
           </form>
-          <p className="font-typed text-[13px] text-paper/60">{onRecord(stats)}</p>
+          <p className="font-typed text-base text-paper/60">{onRecord(stats)}</p>
         </div>
         {heroFiles.length > 0 && (
           <div className="relative hidden h-[320px] md:block">
@@ -215,14 +215,14 @@ export default async function HomePage() {
             {board.map((row, i) => (
               <div key={row.slug} className={`flex flex-col gap-2 py-[10px] md:grid md:grid-cols-[200px_110px_minmax(0,1fr)_110px_auto] md:items-center md:gap-4 md:py-3 ${i < board.length - 1 ? "border-b border-paper-2" : ""}`}>
                 <div className="flex items-baseline justify-between gap-3 md:contents">
-                  <Link href={`/profiles/${row.slug}`} className="font-display text-[22px] font-extrabold uppercase leading-none text-ink hover:text-navy md:text-[24px]">
+                  <Link href={`/profiles/${row.slug}`} className="font-display text-6xl font-extrabold uppercase leading-none text-ink hover:text-navy md:text-7xl">
                     {row.name}
                   </Link>
-                  <span className="font-typed text-[12px] text-navy md:hidden">
+                  <span className="font-typed text-sm text-navy md:hidden">
                     {row.system ? `${row.system.name}, ` : ""}
                     {row.readers > 0 ? count(row.readers, "reader") : "no reads yet"}
                   </span>
-                  <div className="hidden font-typed text-[13px] font-bold uppercase tracking-[0.1em] text-navy md:block">{row.system?.name ?? "On file"}</div>
+                  <div className="hidden font-typed text-base font-bold uppercase tracking-[0.1em] text-navy md:block">{row.system?.name ?? "On file"}</div>
                 </div>
                 {row.lead ? (
                   <SegBar lead={row.lead.pct} runner={row.runner?.pct} leadLabel={`${row.lead.code} ${row.lead.pct}%`} runnerLabel={row.runner ? `${row.runner.code} ${row.runner.pct}%` : undefined} />
@@ -231,10 +231,10 @@ export default async function HomePage() {
                     {row.chips.map((c, j) => (
                       <TypingBadge key={`${c.systemSlug}-${c.code}`} systemSlug={c.systemSlug} systemName={c.systemName} typeValue={c.code} confidence={0} tone={j === 0 ? "blue" : "navy"} />
                     ))}
-                    {row.chips.length === 0 && <span className="font-typed text-[13px] text-steel-2">No reads on file.</span>}
+                    {row.chips.length === 0 && <span className="font-typed text-base text-steel-2">No reads on file.</span>}
                   </div>
                 )}
-                <div className="hidden whitespace-nowrap font-typed text-[13px] text-navy md:block">{row.readers > 0 ? count(row.readers, "reader") : "no reads yet"}</div>
+                <div className="hidden whitespace-nowrap font-typed text-base text-navy md:block">{row.readers > 0 ? count(row.readers, "reader") : "no reads yet"}</div>
                 <div className="hidden items-center justify-end gap-3 md:flex">
                   {row.disputed && <InkTag>Disputed</InkTag>}
                   <Btn href={`/profiles/${row.slug}`} variant="small">Weigh in</Btn>
@@ -270,7 +270,7 @@ export default async function HomePage() {
         <StreaksAndChallenges quiet />
       </div>
 
-      <footer className="mt-auto border-t border-navy pb-6 pt-[18px] font-typed text-[12px] tracking-[0.04em] text-paper/45">
+      <footer className="mt-auto border-t border-navy pb-6 pt-[18px] font-typed text-sm tracking-[0.04em] text-paper/45">
         TypeScape is a community personality database. Not affiliated with any psychological organization.
       </footer>
     </div>

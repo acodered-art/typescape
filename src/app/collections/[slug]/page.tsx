@@ -53,8 +53,8 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
         <PageTitle title="Collection" />
         <div className="max-w-[560px]">
           <Sheet className="flex flex-col gap-3">
-            <div className="font-display text-[48px] font-extrabold uppercase leading-none">No such collection.</div>
-            <Typed className="text-[14px]">
+            <div className="font-display text-14xl font-extrabold uppercase leading-none">No such collection.</div>
+            <Typed className="text-md">
               It does not exist or was removed.{" "}
               <Link href="/collections" className="underline">Browse all collections</Link>.
             </Typed>
@@ -76,7 +76,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
           </>
         }
       />
-      {collection.description && <p className="-mt-2 max-w-[640px] pb-5 text-[15px] leading-[1.5] text-paper/75">{collection.description}</p>}
+      {collection.description && <p className="-mt-2 max-w-[640px] pb-5 text-lg leading-[1.5] text-paper/75">{collection.description}</p>}
 
       <Sheet className="p-5">
         {collection.items.length === 0 ? (
@@ -95,7 +95,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
                   variant="sheet"
                 />
                 {item.note && (
-                  <Typed className="px-1 text-[12px] leading-[1.5]">
+                  <Typed className="px-1 text-sm leading-[1.5]">
                     {item.adder.username} notes: {item.note}
                   </Typed>
                 )}

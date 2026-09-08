@@ -9,7 +9,7 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
       <PageTitle title="Something went wrong" />
       <div className="max-w-[640px]">
         <Sheet className="flex flex-col gap-4">
-          <pre className="max-h-64 overflow-auto whitespace-pre-wrap border border-steel bg-paper-2 p-3 font-typed text-[13px] leading-[1.5] text-ink">
+          <pre className="max-h-64 overflow-auto whitespace-pre-wrap border border-steel bg-paper-2 p-3 font-typed text-base leading-[1.5] text-ink">
             {error.message}
             {error.digest && `\nDigest: ${error.digest}`}
             {error.stack && `\n\n${error.stack}`}

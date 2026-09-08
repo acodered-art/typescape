@@ -30,7 +30,7 @@ export function GroupDetailClient({ slug, isMember, isAdmin }: { slug: string; i
 
   return (
     <div className="flex items-center gap-3">
-      {note && <span className="font-typed text-[13px] text-paper/70">{note}</span>}
+      {note && <span className="font-typed text-base text-paper/70">{note}</span>}
       <Btn variant={member ? "desk" : "primary"} onClick={handleJoin} disabled={loading}>
         {loading ? "Filing" : member ? (isAdmin ? "Admin" : "Leave") : "Join"}
       </Btn>

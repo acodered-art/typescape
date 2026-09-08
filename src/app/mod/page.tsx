@@ -15,7 +15,7 @@ export default async function ModPage() {
         <PageTitle title="Moderation" />
         <div className="max-w-[560px]">
           <Sheet className="flex flex-col items-start gap-4 p-5">
-            <Typed className="text-[14px]">Sign in to open the moderation desk.</Typed>
+            <Typed className="text-md">Sign in to open the moderation desk.</Typed>
             <Btn variant="primary" href="/auth/signin">Sign in</Btn>
           </Sheet>
         </div>
@@ -29,7 +29,7 @@ export default async function ModPage() {
         <PageTitle title="Moderation" />
         <div className="max-w-[560px]">
           <Sheet className="flex flex-col items-start gap-4 p-5">
-            <Typed className="text-[14px]">
+            <Typed className="text-md">
               This desk is for moderators. Ask one if something needs looking at.
             </Typed>
           </Sheet>

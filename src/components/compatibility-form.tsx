@@ -55,7 +55,7 @@ function Side({
           <option key={t} value={t}>{t}</option>
         ))}
       </SelectPaper>
-      {label && <Typed className="text-[12px] text-navy">{label}</Typed>}
+      {label && <Typed className="text-sm text-navy">{label}</Typed>}
     </div>
   );
 }
@@ -111,7 +111,7 @@ export function CompatibilityForm() {
           <Side side="Your reading" system={sysA} type={typeA} onSystem={(v) => { setSysA(v); setTypeA(""); }} onType={setTypeA} label="" />
           <Side side="Their reading" system={sysB} type={typeB} onSystem={(v) => { setSysB(v); setTypeB(""); }} onType={setTypeB} label="" />
         </div>
-        {error && <Typed className="text-[13px] text-white/90">{error}</Typed>}
+        {error && <Typed className="text-base text-white/90">{error}</Typed>}
         <div>
           <Btn variant="primary" onClick={run} disabled={loading}>
             {loading ? "Reading the files" : "Compare readings"}
@@ -123,27 +123,27 @@ export function CompatibilityForm() {
         <Sheet className="flex flex-col gap-3 p-5">
           <SectionHead title={`${report.a.label} · ${report.b.label}`} size={20} />
           <div className="flex items-baseline gap-3">
-            <span className="font-typed text-[40px] font-bold text-blue">
+            <span className="font-typed text-12xl font-bold text-blue">
               {report.score === null ? "—" : `${report.score}%`}
             </span>
-            <Typed className="text-[13px]">{report.summary}</Typed>
+            <Typed className="text-base">{report.summary}</Typed>
           </div>
           {report.agreements.length > 0 && (
             <ul className="flex flex-col gap-1">
               {report.agreements.map((a, i) => (
-                <li key={i} className="text-[14px] leading-[1.5]">{a}</li>
+                <li key={i} className="text-md leading-[1.5]">{a}</li>
               ))}
             </ul>
           )}
           {report.divergences.length > 0 && (
             <ul className="flex flex-col gap-1 border-t border-steel pt-2">
               {report.divergences.map((d, i) => (
-                <li key={i} className="font-typed text-[13px] leading-[1.5] text-navy">{d}</li>
+                <li key={i} className="font-typed text-base leading-[1.5] text-navy">{d}</li>
               ))}
             </ul>
           )}
           {report.score === null && (
-            <Typed className="text-[12px]">
+            <Typed className="text-sm">
               No score is shown rather than a made-up number.
             </Typed>
           )}

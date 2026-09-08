@@ -168,26 +168,26 @@ export function ModDesk({ pendingCount }: { pendingCount: number }) {
             <Sheet key={item.id} className="flex flex-col gap-3 p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="font-display text-[18px] font-extrabold uppercase tracking-[0.08em]">
+                  <span className="font-display text-3xl font-extrabold uppercase tracking-[0.08em]">
                     {item.contentType}
                   </span>
-                  <span className="font-typed text-[12px] text-navy">
+                  <span className="font-typed text-sm text-navy">
                     {ruleNames(item.reason)}
                   </span>
                   {item.status !== "pending" && (
-                    <span className="border border-steel px-1.5 font-typed text-[11px] uppercase">
+                    <span className="border border-steel px-1.5 font-typed text-xs uppercase">
                       {item.status}
                     </span>
                   )}
                 </div>
-                <span className="font-typed text-[11px] text-steel-2">
+                <span className="font-typed text-xs text-steel-2">
                   {new Date(item.createdAt).toISOString().slice(0, 16).replace("T", " ")} UTC
                 </span>
               </div>
 
               {item.comment ? (
                 <div className="border-l-2 border-steel pl-3">
-                  <div className="flex flex-wrap items-baseline gap-2 font-typed text-[12px]">
+                  <div className="flex flex-wrap items-baseline gap-2 font-typed text-sm">
                     <Link href={`/user/${item.comment.user.username}`} className="text-blue underline">
                       {item.comment.user.username}
                     </Link>
@@ -196,16 +196,16 @@ export function ModDesk({ pendingCount }: { pendingCount: number }) {
                       {item.comment.profile.name}
                     </Link>
                     {item.comment.user.role !== "user" && (
-                      <span className="border border-navy px-1 text-[10px] uppercase">{item.comment.user.role}</span>
+                      <span className="border border-navy px-1 text-2xs uppercase">{item.comment.user.role}</span>
                     )}
                     {item.comment.isRemoved && (
-                      <span className="border border-navy px-1 text-[10px] uppercase">removed</span>
+                      <span className="border border-navy px-1 text-2xs uppercase">removed</span>
                     )}
                   </div>
-                  <p className="mt-1 max-w-[70ch] text-[14px] leading-[1.55]">{item.comment.body}</p>
+                  <p className="mt-1 max-w-[70ch] text-md leading-[1.55]">{item.comment.body}</p>
                 </div>
               ) : (
-                <Typed className="text-[13px] text-navy">
+                <Typed className="text-base text-navy">
                   Content is no longer available (it may have been deleted).
                 </Typed>
               )}
@@ -238,7 +238,7 @@ export function ModDesk({ pendingCount }: { pendingCount: number }) {
                   )}
                 </div>
               ) : (
-                <Typed className="text-[12px] text-navy">
+                <Typed className="text-sm text-navy">
                   {item.reviewer ? `Decided by ${item.reviewer.username}` : "Decided"}
                   {item.reviewedAt ? ` · ${new Date(item.reviewedAt).toISOString().slice(0, 16).replace("T", " ")}` : ""}
                 </Typed>
@@ -262,7 +262,7 @@ export function ModDesk({ pendingCount }: { pendingCount: number }) {
         </div>
       )}
 
-      <p className="max-w-[70ch] font-typed text-[12px] leading-[1.6] text-navy">
+      <p className="max-w-[70ch] font-typed text-sm leading-[1.6] text-navy">
         Approving a held item publishes it. Rejecting leaves it unpublished and marks the
         comment removed — the author can still see it and it stays in the thread rather than
         vanishing. Both decisions are recorded in the audit log with your name.
@@ -270,7 +270,7 @@ export function ModDesk({ pendingCount }: { pendingCount: number }) {
 
       <Modal open={!!rejecting} onClose={() => setRejecting(null)} title="Reject this item">
         <div className="flex flex-col gap-3">
-          <Typed className="text-[13px] leading-[1.5]">
+          <Typed className="text-base leading-[1.5]">
             Give the author a reason. It is shown alongside the removed comment and stored in
             the audit log.
           </Typed>
@@ -280,7 +280,7 @@ export function ModDesk({ pendingCount }: { pendingCount: number }) {
             rows={3}
             maxLength={500}
             placeholder="Stereotyping, not a reading of the character."
-            className="w-full border border-steel bg-paper px-2 py-1 font-body text-[14px] text-ink outline-none focus:border-blue"
+            className="w-full border border-steel bg-paper px-2 py-1 font-body text-md text-ink outline-none focus:border-blue"
           />
           <div className="flex gap-2">
             <Btn

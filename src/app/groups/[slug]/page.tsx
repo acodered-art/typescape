@@ -99,7 +99,7 @@ export default async function GroupPage({ params }: { params: Promise<{ slug: st
       </PageTitle>
 
       <Sheet className="flex flex-col gap-[22px]">
-        {group.description && <p className="max-w-[680px] text-[15px] leading-[1.55]">{group.description}</p>}
+        {group.description && <p className="max-w-[680px] text-lg leading-[1.55]">{group.description}</p>}
 
         <div className="flex flex-col gap-2">
           <span className="lab">Members</span>
@@ -126,27 +126,27 @@ export default async function GroupPage({ params }: { params: Promise<{ slug: st
             </div>
           )}
           {posts.length === 0 ? (
-            <Typed className="text-[14px]">{isMember ? "No posts yet. File the first one." : "No posts yet in this group."}</Typed>
+            <Typed className="text-md">{isMember ? "No posts yet. File the first one." : "No posts yet in this group."}</Typed>
           ) : (
             <div className="flex flex-col">
               {posts.map((post, i) => (
                 <div key={post.id} className={`grid grid-cols-[44px_minmax(0,1fr)] gap-[14px] pb-4 pt-[18px] ${i < posts.length - 1 ? "border-b border-paper-2" : ""}`}>
                   <div className="flex flex-col items-center text-navy">
-                    <span className="font-typed text-[14px] font-bold">{post._count.replies}</span>
-                    <span className="font-typed text-[9px] tracking-[0.1em]">{post._count.replies === 1 ? "REPLY" : "REPLIES"}</span>
+                    <span className="font-typed text-md font-bold">{post._count.replies}</span>
+                    <span className="font-typed text-3xs tracking-[0.1em]">{post._count.replies === 1 ? "REPLY" : "REPLIES"}</span>
                   </div>
                   <div className="flex min-w-0 flex-col gap-2">
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <Link href={`/groups/${group.slug}/post/${post.id}`} className="font-display text-[22px] font-extrabold uppercase leading-none text-ink hover:text-navy">
+                      <Link href={`/groups/${group.slug}/post/${post.id}`} className="font-display text-6xl font-extrabold uppercase leading-none text-ink hover:text-navy">
                         {post.title}
                       </Link>
                       {post.pinOrder > 0 && <InkTag rotate={-2}>Pinned</InkTag>}
                     </div>
                     <div className="flex flex-wrap items-center gap-[10px] font-typed">
-                      <Link href={`/user/${post.user.username}`} className="text-[14px] font-bold text-ink hover:text-blue">{post.user.username}</Link>
-                      <span className="text-[12px] text-steel-2">{timeAgo(post.createdAt)}</span>
+                      <Link href={`/user/${post.user.username}`} className="text-md font-bold text-ink hover:text-blue">{post.user.username}</Link>
+                      <span className="text-sm text-steel-2">{timeAgo(post.createdAt)}</span>
                     </div>
-                    <p className="line-clamp-2 max-w-[620px] text-[15px] leading-[1.55]">{post.body}</p>
+                    <p className="line-clamp-2 max-w-[620px] text-lg leading-[1.55]">{post.body}</p>
                   </div>
                 </div>
               ))}

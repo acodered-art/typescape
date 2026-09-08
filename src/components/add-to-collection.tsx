@@ -44,7 +44,7 @@ export function AddToCollectionInline({ profileSlug, desk = false }: { profileSl
       {desk ? (
         <Btn variant="desk" onClick={openPicker}>+ Collection</Btn>
       ) : (
-        <button type="button" onClick={(e) => { e.stopPropagation(); openPicker(); }} className="font-typed text-[12px] text-navy underline hover:text-blue">
+        <button type="button" onClick={(e) => { e.stopPropagation(); openPicker(); }} className="font-typed text-sm text-navy underline hover:text-blue">
           + Collection
         </button>
       )}
@@ -63,8 +63,8 @@ export function AddToCollectionInline({ profileSlug, desk = false }: { profileSl
             <div className="flex max-h-64 flex-col gap-[3px] overflow-y-auto">
               {collections.map((c) => (
                 <button key={c.id} type="button" onClick={() => handleAdd(c.slug)} className="row-fill flex items-baseline justify-between gap-3 px-3 py-2 text-left hover:bg-blue">
-                  <span className="font-display text-[18px] font-bold uppercase tracking-[0.04em]">{c.name}</span>
-                  <span className="font-typed text-[12px] text-navy">{c._count.items} {c._count.items === 1 ? "file" : "files"}</span>
+                  <span className="font-display text-3xl font-bold uppercase tracking-[0.04em]">{c.name}</span>
+                  <span className="font-typed text-sm text-navy">{c._count.items} {c._count.items === 1 ? "file" : "files"}</span>
                 </button>
               ))}
             </div>

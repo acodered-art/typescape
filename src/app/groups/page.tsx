@@ -70,12 +70,12 @@ export default async function GroupsPage() {
               {catGroups.map((g) => (
                 <div key={g.id} className="row-fill flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
                   <div className="flex min-w-0 flex-col gap-1">
-                    <Link href={`/groups/${g.slug}`} className="font-display text-[24px] font-extrabold uppercase leading-none text-ink hover:text-navy">
+                    <Link href={`/groups/${g.slug}`} className="font-display text-7xl font-extrabold uppercase leading-none text-ink hover:text-navy">
                       {g.name}
                     </Link>
-                    {g.description && <p className="line-clamp-2 text-[14px] leading-[1.45]">{g.description}</p>}
+                    {g.description && <p className="line-clamp-2 text-md leading-[1.45]">{g.description}</p>}
                   </div>
-                  <span className="shrink-0 font-typed text-[12px] text-navy">
+                  <span className="shrink-0 font-typed text-sm text-navy">
                     {count(g.memberCount, "member")}, {count(g.postCount, "post")}
                   </span>
                 </div>

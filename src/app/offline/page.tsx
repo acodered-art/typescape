@@ -12,7 +12,7 @@ export default function OfflinePage() {
       <PageTitle title="Offline" aside="No connection." />
       <div className="max-w-[620px]">
         <Sheet className="flex flex-col gap-4 p-5">
-          <Typed className="text-[15px] leading-[1.6]">
+          <Typed className="text-lg leading-[1.6]">
             This page needs the network. The files you had already opened are still in your
             browser cache, and the app will pick up where it left off when you reconnect.
           </Typed>

@@ -77,16 +77,16 @@ export function ActivityFeed() {
             const file = fileOf(a.data);
             return (
               <div key={a.id} className={`grid gap-1 py-3 md:grid-cols-[110px_minmax(0,1fr)] md:gap-4 ${i < activities.length - 1 ? "border-b border-paper-2" : ""}`}>
-                <span className="font-typed text-[12px] text-steel-2">{timeAgo(a.createdAt)}</span>
-                <p className="text-[15px] leading-[1.5]">
-                  <Link href={`/user/${a.user.username}`} className="font-typed text-[14px] font-bold text-ink hover:text-blue">
+                <span className="font-typed text-sm text-steel-2">{timeAgo(a.createdAt)}</span>
+                <p className="text-lg leading-[1.5]">
+                  <Link href={`/user/${a.user.username}`} className="font-typed text-md font-bold text-ink hover:text-blue">
                     {a.user.username}
                   </Link>{" "}
                   {VERBS[a.activityType] ?? a.activityType.replace(/_/g, " ")}
                   {file && (
                     <>
                       {" "}
-                      <Link href={`/profiles/${file.slug}`} className="font-display text-[22px] font-extrabold uppercase leading-none text-ink hover:text-navy">
+                      <Link href={`/profiles/${file.slug}`} className="font-display text-6xl font-extrabold uppercase leading-none text-ink hover:text-navy">
                         {file.name}
                       </Link>
                     </>

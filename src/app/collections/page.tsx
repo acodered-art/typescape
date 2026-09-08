@@ -49,14 +49,14 @@ export default async function CollectionsPage() {
           <div className="grid gap-[14px] sm:grid-cols-2 lg:grid-cols-3">
             {collections.map((c) => (
               <div key={c.id} className="flex flex-col gap-1 border border-steel px-4 py-[14px]">
-                <Link href={`/collections/${c.slug}`} className="font-display text-[26px] font-extrabold uppercase leading-[0.95] text-ink hover:text-navy">
+                <Link href={`/collections/${c.slug}`} className="font-display text-8xl font-extrabold uppercase leading-[0.95] text-ink hover:text-navy">
                   {c.name}
                 </Link>
                 <Typed>
                   {count(c._count.items, "file")}. By{" "}
                   <Link href={`/user/${c.user.username}`} className="underline">{c.user.username}</Link>.
                 </Typed>
-                {c.description && <p className="line-clamp-2 text-[14px] leading-[1.45]">{c.description}</p>}
+                {c.description && <p className="line-clamp-2 text-md leading-[1.45]">{c.description}</p>}
               </div>
             ))}
           </div>

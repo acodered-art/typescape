@@ -51,7 +51,7 @@ function CrossReads({ systemSlug, typeValue }: { systemSlug: string; typeValue: 
   const correlations = getCorrelations(systemSlug, typeValue);
   if (correlations.length === 0) return null;
   return (
-    <Typed className="text-[12px] text-steel-2">
+    <Typed className="text-sm text-steel-2">
       Often read as{" "}
       {correlations.slice(0, 3).map((c, i) => (
         <span key={`${c.targetSystem}-${c.targetType}`}>
@@ -172,7 +172,7 @@ export function VotePanel({ profileSlug, initial, initialMine, mode = "summary" 
   if (mode === "full") {
     return (
       <div className="flex flex-col gap-5">
-        {note && <Typed className="text-[14px]">{note}</Typed>}
+        {note && <Typed className="text-md">{note}</Typed>}
         {[...systems.entries()].map(([slug, list]) => {
           const r = rankSystem(list);
           return (
@@ -182,14 +182,14 @@ export function VotePanel({ profileSlug, initial, initialMine, mode = "summary" 
                 const agreement = t.votes.length > 0 ? calcConsensus(t.votes, 0).percentage : null;
                 return (
                   <div key={t.id} className="row-fill flex flex-col gap-2 px-3 py-[10px] md:grid md:grid-cols-[90px_minmax(0,1fr)_170px_auto] md:items-center md:gap-3">
-                    <div className="font-typed text-[24px] font-bold">{t.typeValue}</div>
+                    <div className="font-typed text-7xl font-bold">{t.typeValue}</div>
                     <div className="flex flex-col gap-1">
                       <SegBar lead={pct} height={10} />
                       <CrossReads systemSlug={slug} typeValue={t.typeValue} />
                     </div>
-                    <Typed className="text-[13px]">
+                    <Typed className="text-base">
                       {t.votes.length === 0 ? "No votes yet" : `${agreement}% agree, ${count(t.votes.length, "reader")}`}
-                      {t.creator?.username && <span className="block text-[12px] text-steel-2">Filed by {t.creator.username}</span>}
+                      {t.creator?.username && <span className="block text-sm text-steel-2">Filed by {t.creator.username}</span>}
                     </Typed>
                     {voteButtons(t)}
                   </div>
@@ -204,7 +204,7 @@ export function VotePanel({ profileSlug, initial, initialMine, mode = "summary" 
 
   return (
     <div className="flex flex-col gap-2">
-      {note && <Typed className="text-[14px]">{note}</Typed>}
+      {note && <Typed className="text-md">{note}</Typed>}
       {[...systems.entries()].map(([slug, list]) => {
         const r = rankSystem(list);
         const name = list[0].typingSystem.name;
@@ -212,9 +212,9 @@ export function VotePanel({ profileSlug, initial, initialMine, mode = "summary" 
           const need = CERTIFIED_AT - r.readers;
           return (
             <div key={slug} className="dashed flex flex-col gap-2 px-3 py-[10px] md:grid md:grid-cols-[150px_90px_minmax(0,1fr)_auto] md:items-center md:gap-3">
-              <div className="font-display text-[16px] font-bold uppercase tracking-[0.1em] text-navy md:text-[19px]">{name}</div>
-              <div className="font-typed text-[24px] font-bold text-navy md:text-[26px]">{r.lead.t.typeValue}</div>
-              <Typed className="text-[14px]">
+              <div className="font-display text-xl font-bold uppercase tracking-[0.1em] text-navy md:text-4xl">{name}</div>
+              <div className="font-typed text-7xl font-bold text-navy md:text-8xl">{r.lead.t.typeValue}</div>
+              <Typed className="text-md">
                 {r.readers === 0 ? `No reads yet. Needs ${CERTIFIED_AT} before this finding is certified.` : `${count(r.readers, "reader")}. Needs ${count(need, "more reader", "more")} before this finding is certified.`}
               </Typed>
               {voteButtons(r.lead.t, true)}
@@ -224,20 +224,20 @@ export function VotePanel({ profileSlug, initial, initialMine, mode = "summary" 
         return (
           <div key={slug} className="row-fill flex flex-col gap-2 px-[10px] py-[10px] md:grid md:grid-cols-[150px_90px_minmax(0,1fr)_150px_90px_auto] md:items-center md:gap-3 md:px-3">
             <div className="flex items-baseline justify-between md:contents">
-              <div className="font-display text-[16px] font-bold uppercase tracking-[0.1em] md:text-[19px]">{name}</div>
-              <Typed className="text-[12px] md:hidden">{count(r.readers, "reader")}</Typed>
+              <div className="font-display text-xl font-bold uppercase tracking-[0.1em] md:text-4xl">{name}</div>
+              <Typed className="text-sm md:hidden">{count(r.readers, "reader")}</Typed>
             </div>
             <div className="flex items-center gap-[10px] md:contents">
-              <div className="w-[58px] font-typed text-[24px] font-bold md:w-auto md:text-[26px]">{r.lead.t.typeValue}</div>
+              <div className="w-[58px] font-typed text-7xl font-bold md:w-auto md:text-8xl">{r.lead.t.typeValue}</div>
               <SegBar className="flex-1" lead={r.lead.pct} runner={r.runner?.pct ?? 0} height={10} />
-              <div className="font-typed text-[14px] text-navy">
+              <div className="font-typed text-md text-navy">
                 <span className="font-bold text-blue">{r.lead.pct}%</span>
                 {r.runner && <span className="ml-3 hidden text-steel-2 md:inline">{r.runner.t.typeValue} {r.runner.pct}%</span>}
               </div>
             </div>
             <Typed className="hidden md:block">{count(r.readers, "reader")}</Typed>
             <div className="flex flex-wrap items-center justify-between gap-2 md:contents">
-              {r.runner ? <Typed className="text-[12px] md:hidden">also {r.runner.t.typeValue} {r.runner.pct}%</Typed> : <span className="md:hidden" />}
+              {r.runner ? <Typed className="text-sm md:hidden">also {r.runner.t.typeValue} {r.runner.pct}%</Typed> : <span className="md:hidden" />}
               <div className="flex items-center gap-2 md:justify-end">
                 {r.disputed && <InkTag>Disputed</InkTag>}
                 {voteButtons(r.lead.t)}
@@ -275,7 +275,7 @@ export function FindingsRail({ typings, children }: { typings: TypingRead[]; chi
         return (
           <div key={slug} className={`flex flex-col gap-[5px] px-[10px] py-[9px] ${certified ? "row-fill" : "dashed"}`}>
             <div className="flex items-baseline justify-between gap-2">
-              <span className={`font-display text-[15px] font-bold uppercase tracking-[0.08em] ${certified ? "" : "text-navy"}`}>{name}</span>
+              <span className={`font-display text-lg font-bold uppercase tracking-[0.08em] ${certified ? "" : "text-navy"}`}>{name}</span>
               {r.disputed && <InkTag>Disputed</InkTag>}
             </div>
             <Typed className="leading-[1.45]">

@@ -174,7 +174,7 @@ export function CorrelationExplorer() {
             </g>
           </svg>
         </div>
-        <Typed className="text-[12px]">
+        <Typed className="text-sm">
           Line thickness is the strength of the link. {CORRELATIONS.length} known correlations
           across {Object.keys(SYSTEM_NAMES).length} systems.
         </Typed>
@@ -187,7 +187,7 @@ export function CorrelationExplorer() {
               key={n.key}
               type="button"
               onClick={() => setSelected(selected === n.key ? null : n.key)}
-              className={`border px-2 py-0.5 font-typed text-[12px] ${
+              className={`border px-2 py-0.5 font-typed text-sm ${
                 selected === n.key ? "border-blue bg-blue text-ink" : "border-steel hover:border-navy hover:bg-paper-2"
               }`}
             >
@@ -205,13 +205,13 @@ export function CorrelationExplorer() {
                   .slice()
                   .sort((a, b) => b.strength - a.strength)
                   .map((c) => (
-                    <div key={`${c.targetSystem}-${c.targetType}`} className="flex items-start justify-between gap-3 text-[14px]">
+                    <div key={`${c.targetSystem}-${c.targetType}`} className="flex items-start justify-between gap-3 text-md">
                       <span>
                         <span className="font-typed font-bold">{SYSTEM_LABELS[c.targetSystem] ?? c.targetSystem} {c.targetType}</span>
                         {" — "}
                         {c.description}
                       </span>
-                      <span className="shrink-0 font-typed text-[12px] text-navy">{Math.round(c.strength * 100)}%</span>
+                      <span className="shrink-0 font-typed text-sm text-navy">{Math.round(c.strength * 100)}%</span>
                     </div>
                   ))}
               </div>

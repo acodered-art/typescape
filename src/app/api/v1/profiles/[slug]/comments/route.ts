@@ -28,8 +28,12 @@ export async function GET(
   const { slug } = await params;
   const { limit, offset } = pagination(req, 50, 100);
 
-  const profile = await prisma.profile.findUnique({ where: { slug }, select: { id: true } });
+  const profile = await prisma.profile.findUnique({
+    where: { slug },
+    select: { id: true, isLocked: true },
+  });
   if (!profile) return fail("Profile not found", 404);
+  if (profile.isLocked) return fail("This file is locked.", 403);
 
   const [rows, total] = await Promise.all([
     prisma.comment.findMany({
@@ -77,8 +81,12 @@ export async function POST(
     return fail("Comment must be 1-2000 characters", 400);
   }
 
-  const profile = await prisma.profile.findUnique({ where: { slug }, select: { id: true } });
+  const profile = await prisma.profile.findUnique({
+    where: { slug },
+    select: { id: true, isLocked: true },
+  });
   if (!profile) return fail("Profile not found", 404);
+  if (profile.isLocked) return fail("This file is locked.", 403);
 
   // A reply must target a real comment on *this* profile, and a locked thread
   // accepts nothing. Without this, a lock is cosmetic and a client could nest a

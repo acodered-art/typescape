@@ -27,7 +27,7 @@ export default function PlansPage() {
     <div className="pb-10">
       <PageTitle title="Plans" aside="Reading and voting are always free." />
       <div className="flex max-w-[1000px] flex-col gap-8">
-        <Typed className="block max-w-[680px] text-[15px] leading-[1.6]">
+        <Typed className="block max-w-[680px] text-lg leading-[1.6]">
           The database, the voting, and the community features are free and stay free. Paid
           plans exist for people building on the data — a higher API rate limit, the vector
           tooling, and bulk export.
@@ -40,18 +40,18 @@ export default function PlansPage() {
             return (
               <Sheet key={slug} className="flex flex-col gap-3 p-5">
                 <div>
-                  <div className="font-display text-[28px] font-extrabold uppercase leading-none">
+                  <div className="font-display text-9xl font-extrabold uppercase leading-none">
                     {p.name}
                   </div>
-                  <div className="mt-1 font-typed text-[22px] text-blue">
+                  <div className="mt-1 font-typed text-6xl text-blue">
                     {formatPrice(p.priceCents)}
                   </div>
                 </div>
-                <Typed className="text-[13px] leading-[1.5]">{p.blurb}</Typed>
+                <Typed className="text-base leading-[1.5]">{p.blurb}</Typed>
 
                 <div className="border-t border-steel pt-3">
                   <div className="lab mb-2">Limits</div>
-                  <dl className="flex flex-col gap-1 text-[13px]">
+                  <dl className="flex flex-col gap-1 text-base">
                     <div className="flex justify-between gap-2">
                       <dt>API requests / min</dt>
                       <dd className="font-typed">{p.apiRateLimit.toLocaleString()}</dd>
@@ -65,12 +65,12 @@ export default function PlansPage() {
 
                 <div className="border-t border-steel pt-3">
                   <div className="lab mb-2">Includes</div>
-                  <ul className="flex flex-col gap-1 text-[13px]">
+                  <ul className="flex flex-col gap-1 text-base">
                     {FEATURE_LABELS.map((f) => {
                       const on = p.features[f.key];
                       return (
                         <li key={f.key} className="flex items-baseline gap-2">
-                          <span className={`font-typed text-[12px] ${on ? "text-blue" : "text-steel-2"}`}>
+                          <span className={`font-typed text-sm ${on ? "text-blue" : "text-steel-2"}`}>
                             {on ? "+" : "−"}
                           </span>
                           <span className={on ? "" : "text-steel-2"} title={f.hint}>
@@ -98,13 +98,13 @@ export default function PlansPage() {
 
         <Sheet className="flex flex-col gap-2 p-5">
           <SectionHead title="How limits are enforced" size={20} />
-          <Typed className="text-[13px] leading-[1.6]">
+          <Typed className="text-base leading-[1.6]">
             A key&apos;s rate limit is the lower of its own override and its owner&apos;s plan
             ceiling, so a paid plan raises the cap but a per-key setting can still hold one
             integration back. If a subscription lapses, the account falls back to the free
             limits rather than keeping paid access indefinitely.
           </Typed>
-          <Typed className="text-[13px] leading-[1.6]">
+          <Typed className="text-base leading-[1.6]">
             Building something?{" "}
             <Link href="/settings#api" className="text-blue underline">
               Create a key

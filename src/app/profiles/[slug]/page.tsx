@@ -12,6 +12,7 @@ import { UploadImageButton } from "@/components/upload-image";
 import { AddTypingForm } from "@/components/add-typing";
 import { ProfileCard } from "@/components/profile-card";
 import { TraitVotePanel } from "@/components/trait-vote-panel";
+import { StaffProfileControls } from "@/components/staff-profile-controls";
 import { Field, FieldGrid, FileCard, PaperClip, Portrait, Section, SectionHead, Stamp, Typed, bySystemOrder, leadingRead } from "@/components/dossier";
 import { ProfileTabs, TabLink, type ProfileTab } from "./profile-tabs";
 import { INTERNAL_API_URL } from "@/lib/api-url";
@@ -28,6 +29,7 @@ interface ProfilePageData {
   externalIds: Record<string, string> | null;
   metadata: Record<string, string> | null;
   viewCount: number;
+  isLocked: boolean;
   createdAt: string;
   category: { id: string; name: string; slug: string } | null;
   typings: (TypingRead & {
@@ -160,6 +162,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   if (!profile) notFound();
 
   const base = INTERNAL_API_URL;
+  const viewer = await auth();
   const [related, similar, tree, evidenceCount, mine] = await Promise.all([
     getJson<RelatedProfile[]>(`${base}/api/profiles/${slug}/related`, []),
     getJson<SimilarResult>(`${base}/api/profiles/${slug}/similar?limit=6`, {
@@ -187,7 +190,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   };
 
   const viewsBlock = (
-    <div className="font-typed text-[12px] leading-[1.7] text-navy md:text-right">
+    <div className="font-typed text-sm leading-[1.7] text-navy md:text-right">
       {profile.viewCount.toLocaleString()} views
       <br />
       {count(typings.length, "finding")}
@@ -215,7 +218,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
     <div className="flex items-center gap-4 border-b-2 border-ink pb-4">
       <Portrait src={profile.imageUrl} alt="" />
       <div className="min-w-0">
-        <div className="truncate font-display text-[32px] font-extrabold uppercase leading-none md:text-[40px]">{profile.name}</div>
+        <div className="truncate font-display text-15xl font-extrabold uppercase leading-none md:text-12xl">{profile.name}</div>
         {source && <Typed>{source}</Typed>}
       </div>
     </div>
@@ -228,17 +231,17 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
           {portrait}
           <FieldGrid className="min-w-0 flex-1 max-md:grid-cols-[minmax(0,1fr)] md:pr-[250px]">
             <div className="lab max-md:hidden">Subject</div>
-            <h1 className="font-display text-[40px] font-extrabold uppercase leading-[0.95] tracking-[0.01em] md:text-[64px]">{profile.name}</h1>
+            <h1 className="font-display text-12xl font-extrabold uppercase leading-[0.95] tracking-[0.01em] md:text-17xl">{profile.name}</h1>
             {source && (
               <>
                 <div className="lab max-md:hidden">Source</div>
-                <div className="ln text-[16px] max-md:border-0 max-md:text-[14px] max-md:text-navy">{source}</div>
+                <div className="ln text-xl max-md:border-0 max-md:text-md max-md:text-navy">{source}</div>
               </>
             )}
             {profile.description && (
               <>
                 <div className="lab max-md:hidden">Summary</div>
-                <div className="ln text-[16px] max-md:border-0 max-md:text-[14px]">{profile.description}</div>
+                <div className="ln text-xl max-md:border-0 max-md:text-md">{profile.description}</div>
               </>
             )}
           </FieldGrid>
@@ -254,7 +257,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
           {stamp ? (
             <Stamp code={stamp.code} line={stamp.line} size="sm" className="relative left-0 top-0" />
           ) : (
-            <div className="dashed px-3 py-2 font-typed text-[12px] text-steel-2">No reads yet</div>
+            <div className="dashed px-3 py-2 font-typed text-sm text-steel-2">No reads yet</div>
           )}
           {viewsBlock}
         </div>
@@ -310,7 +313,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
     <>
       <SectionHead title="Findings" aside={`${systems.size} of 20 systems on file`} />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Typed className="text-[14px]">Every read on this file, by system. Agree or disagree with each one; five readers certify a finding.</Typed>
+        <Typed className="text-md">Every read on this file, by system. Agree or disagree with each one; five readers certify a finding.</Typed>
         <AddTypingForm profileSlug={profile.slug} variant="secondary" />
       </div>
       <VotePanel profileSlug={profile.slug} initial={typings} initialMine={mine} mode="full" />
@@ -321,7 +324,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
     <>
       {strip}
       {typings.length === 0 ? (
-        <Typed className="text-[14px]">No reads on this file yet, so nothing to file evidence against. Add your read first.</Typed>
+        <Typed className="text-md">No reads on this file yet, so nothing to file evidence against. Add your read first.</Typed>
       ) : (
         typings.map((t) => <EvidencePanel key={t.id} typingId={t.id} code={t.typeValue} systemName={t.typingSystem.name} subject={profile.name} certified={t.votes.length >= 5} />)
       )}
@@ -332,10 +335,20 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
     <>
       {strip}
       <div className="grid gap-9 md:grid-cols-[minmax(0,1fr)_260px]">
-        <CommentSection profileSlug={profile.slug} />
+        {profile.isLocked && (
+        <div className="border-l-4 border-navy bg-paper-2 px-4 py-3">
+          <span className="lab">Locked</span>
+          <Typed className="mt-1 text-md leading-[1.55]">
+            This file is closed to new readings and comments while a moderator reviews it.
+            Existing discussion stays visible.
+          </Typed>
+        </div>
+      )}
+      <StaffProfileControls slug={profile.slug} isLocked={profile.isLocked} role={viewer?.user?.role ?? null} />
+      <CommentSection profileSlug={profile.slug} />
         {typings.length > 0 && (
           <FindingsRail typings={typings}>
-            <TabLink to="findings" className="self-start font-typed text-[13px] text-blue underline hover:text-navy">Open the Findings tab</TabLink>
+            <TabLink to="findings" className="self-start font-typed text-base text-blue underline hover:text-navy">Open the Findings tab</TabLink>
           </FindingsRail>
         )}
       </div>

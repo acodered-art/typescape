@@ -61,13 +61,13 @@ export function StreaksAndChallenges({ quiet = false }: { quiet?: boolean }) {
     <div className="flex flex-col gap-3">
       {loginStreak && (
         <NavyCard title="Login streak">
-          <span className="block py-1 font-typed text-[28px] font-bold leading-none text-paper">{loginStreak.count}</span>
+          <span className="block py-1 font-typed text-9xl font-bold leading-none text-paper">{loginStreak.count}</span>
           {loginStreak.count === 1 ? "day" : "days"} in a row.
         </NavyCard>
       )}
       {challenge && (
         <NavyCard title="Daily challenge">
-          <span className="block text-[14px] text-paper">{challenge.challenge.title}</span>
+          <span className="block text-md text-paper">{challenge.challenge.title}</span>
           {challenge.challenge.description}
           <span className="mt-2 block h-1 w-full bg-paper/20" aria-hidden="true">
             <span className="block h-1 bg-blue" style={{ width: `${Math.min(100, (challenge.progress / challenge.target) * 100)}%` }} />

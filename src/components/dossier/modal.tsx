@@ -16,7 +16,7 @@ export function Modal({ open, onClose, title, width = 440, children }: { open: b
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <h2 className="sec-h">{title}</h2>
-          <button type="button" onClick={onClose} className="font-typed text-[13px] text-navy underline hover:text-blue">
+          <button type="button" onClick={onClose} className="font-typed text-base text-navy underline hover:text-blue">
             Close
           </button>
         </div>
@@ -29,8 +29,8 @@ export function Modal({ open, onClose, title, width = 440, children }: { open: b
 /** Typed status line under a form. `error` prints the word Error before it. */
 export function FormNote({ error = false, children }: { error?: boolean; children: ReactNode }) {
   return (
-    <p className="font-typed text-[13px] leading-[1.5] text-navy" role="status">
-      {error && <span className="lab mr-2 text-[13px]">Error</span>}
+    <p className="font-typed text-base leading-[1.5] text-navy" role="status">
+      {error && <span className="lab mr-2 text-base">Error</span>}
       {children}
     </p>
   );

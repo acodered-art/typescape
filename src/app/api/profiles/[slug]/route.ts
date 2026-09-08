@@ -19,6 +19,7 @@ export async function GET(
       imageModeration: true,
       bio: true,
       isVerified: true,
+      isLocked: true,
       viewCount: true,
       createdAt: true,
       updatedAt: true,

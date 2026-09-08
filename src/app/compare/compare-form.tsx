@@ -111,7 +111,7 @@ export default function CompareForm({ initial }: { initial: Picks }) {
 
   const readPicker = (label: string, system: string, type: string, sys: typeof sys1, onSystem: (v: string) => void, onType: (v: string) => void) => (
     <div className="flex flex-col gap-2">
-      <span className="font-display text-[15px] font-bold uppercase tracking-[0.1em] text-paper/80">{label}</span>
+      <span className="font-display text-lg font-bold uppercase tracking-[0.1em] text-paper/80">{label}</span>
       <div className="flex gap-2">
         <SelectPaper value={system} onChange={(e) => { onSystem(e.target.value); onType(""); }} aria-label={`${label}, system`} className="flex-1 border-0">
           {SYSTEMS.map((s) => (
@@ -130,13 +130,13 @@ export default function CompareForm({ initial }: { initial: Picks }) {
 
   const side = (r: CompareResult["type1"]) => (
     <div className="flex min-w-0 flex-col gap-[10px]">
-      <div className="font-typed text-[48px] font-bold leading-none">{r.type}</div>
+      <div className="font-typed text-14xl font-bold leading-none">{r.type}</div>
       <div className="lab">{systemLabel(r.system, r.type)}</div>
-      <div className="ln text-[15px]">{r.count === 0 ? "No file carries this read" : `${count(r.count, "file")} ${r.count === 1 ? "carries" : "carry"} this read`}</div>
+      <div className="ln text-lg">{r.count === 0 ? "No file carries this read" : `${count(r.count, "file")} ${r.count === 1 ? "carries" : "carry"} this read`}</div>
       {r.examples.length > 0 && (
         <div className="mt-[6px] flex flex-col">
           {r.examples.map((p, i) => (
-            <Link key={p.slug} href={`/profiles/${p.slug}`} className={`py-[9px] font-display text-[22px] font-extrabold uppercase leading-none text-ink hover:text-navy ${i < r.examples.length - 1 ? "border-b border-paper-2" : ""}`}>
+            <Link key={p.slug} href={`/profiles/${p.slug}`} className={`py-[9px] font-display text-6xl font-extrabold uppercase leading-none text-ink hover:text-navy ${i < r.examples.length - 1 ? "border-b border-paper-2" : ""}`}>
               {p.name}
             </Link>
           ))}
@@ -151,28 +151,28 @@ export default function CompareForm({ initial }: { initial: Picks }) {
     <div className="flex flex-col gap-7">
       <form onSubmit={handleSubmit} className="grid gap-5 bg-navy px-6 pb-[22px] pt-5 md:grid-cols-[minmax(0,1fr)_80px_minmax(0,1fr)_auto] md:items-end">
         {readPicker("First read", system1, type1, sys1, setSystem1, setType1)}
-        <div className="text-center font-typed text-[14px] text-paper/70 md:pb-3">against</div>
+        <div className="text-center font-typed text-md text-paper/70 md:pb-3">against</div>
         {readPicker("Second read", system2, type2, sys2, setSystem2, setType2)}
         <Btn type="submit" variant="primary" disabled={loading || !type1 || !type2}>
           {loading ? "Pulling" : "Pull the files"}
         </Btn>
       </form>
 
-      {error && <p className="font-typed text-[13px] text-paper/70">{error}</p>}
-      {loading && !error && <p className="font-typed text-[13px] text-paper/70">Pulling the files.</p>}
+      {error && <p className="font-typed text-base text-paper/70">{error}</p>}
+      {loading && !error && <p className="font-typed text-base text-paper/70">Pulling the files.</p>}
 
       {result && picks && (
         <Sheet className="grid items-start gap-7 px-8 pb-7 pt-[30px] md:grid-cols-[minmax(0,1fr)_340px_minmax(0,1fr)]">
           {side(result.type1)}
           <div className="row-fill order-last flex flex-col gap-3 px-[18px] pb-4 pt-[18px] md:order-none">
             <span className="lab">Filed under both</span>
-            <div className="font-display text-[44px] font-extrabold uppercase leading-[0.95]">{filesInWords(result.commonProfiles.length)}</div>
+            <div className="font-display text-13xl font-extrabold uppercase leading-[0.95]">{filesInWords(result.commonProfiles.length)}</div>
             {result.commonProfiles.length === 0 ? (
               <EmptySlot>No file carries both reads yet. Be the first to read one that way.</EmptySlot>
             ) : (
               result.commonProfiles.map((p) => (
                 <div key={p.slug} className="flex flex-col gap-2 border border-steel bg-paper px-3 pb-[14px] pt-3">
-                  <Link href={`/profiles/${p.slug}`} className="font-display text-[26px] font-extrabold uppercase leading-[0.95] text-ink hover:text-navy">
+                  <Link href={`/profiles/${p.slug}`} className="font-display text-8xl font-extrabold uppercase leading-[0.95] text-ink hover:text-navy">
                     {p.name}
                   </Link>
                   <div className="flex flex-wrap gap-[6px]">
@@ -183,7 +183,7 @@ export default function CompareForm({ initial }: { initial: Picks }) {
               ))
             )}
             {sentence && <Typed className="border-t border-ink pt-[10px] leading-[1.5]">{sentence}</Typed>}
-            <Link href={`/search?type=${encodeURIComponent(picks.type1)}&system=${picks.system1}`} className="font-typed text-[13px] underline">
+            <Link href={`/search?type=${encodeURIComponent(picks.type1)}&system=${picks.system1}`} className="font-typed text-base underline">
               Open {picks.type1} in Browse
             </Link>
           </div>

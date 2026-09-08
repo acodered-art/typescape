@@ -58,24 +58,24 @@ export function DailyCard() {
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <Link
             href={`/profiles/${c.slug}`}
-            className="font-display text-[30px] font-extrabold uppercase leading-none hover:text-navy"
+            className="font-display text-10xl font-extrabold uppercase leading-none hover:text-navy"
           >
             {c.name}
           </Link>
           {c.category && (
-            <Typed className="text-[12px] uppercase tracking-[0.14em] text-navy">
+            <Typed className="text-sm uppercase tracking-[0.14em] text-navy">
               {c.category.name}
             </Typed>
           )}
           {c.description && (
-            <Typed className="text-[14px] leading-[1.5]">{c.description}</Typed>
+            <Typed className="text-md leading-[1.5]">{c.description}</Typed>
           )}
           {c.readings.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {c.readings.slice(0, 4).map((r) => (
                 <span
                   key={`${r.system}-${r.type}`}
-                  className="border border-steel px-2 py-0.5 font-typed text-[12px]"
+                  className="border border-steel px-2 py-0.5 font-typed text-sm"
                   title={`${r.votes} ${r.votes === 1 ? "vote" : "votes"}`}
                 >
                   {r.type}
@@ -87,7 +87,7 @@ export function DailyCard() {
             <Btn href={`/profiles/${c.slug}`} variant="primary">
               Open the file
             </Btn>
-            <Typed className="text-[11px] text-steel-2">
+            <Typed className="text-xs text-steel-2">
               Changes at midnight UTC
             </Typed>
           </div>

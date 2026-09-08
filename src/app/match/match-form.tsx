@@ -112,13 +112,13 @@ export function MatchForm() {
             </div>
           </div>
         </div>
-        {error && <Typed className="text-[13px] text-white/90">{error}</Typed>}
+        {error && <Typed className="text-base text-white/90">{error}</Typed>}
         <div className="flex items-center gap-3">
           <Btn variant="primary" onClick={run} disabled={loading}>
             {loading ? "Searching the files" : "Find my match"}
           </Btn>
           {data && (
-            <Typed className="text-[13px]">
+            <Typed className="text-base">
               {data.matched === 1 ? "One file" : `${data.matched} files`} matched
             </Typed>
           )}
@@ -136,17 +136,17 @@ export function MatchForm() {
               <Sheet key={r.slug} className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 flex-col gap-1">
-                    <Link href={`/profiles/${r.slug}`} className="font-display text-[24px] font-extrabold uppercase leading-tight hover:text-navy">
+                    <Link href={`/profiles/${r.slug}`} className="font-display text-7xl font-extrabold uppercase leading-tight hover:text-navy">
                       {r.name}
                     </Link>
-                    <Typed className="text-[12px] text-navy">
+                    <Typed className="text-sm text-navy">
                       {i === 0 ? "Closest match · " : ""}
                       {r.reasons.join(" · ")}
                     </Typed>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="font-typed text-[20px] font-bold text-blue">{r.strength}%</span>
-                    <span className="font-typed text-[11px] text-steel-2">score {r.score}</span>
+                    <span className="font-typed text-5xl font-bold text-blue">{r.strength}%</span>
+                    <span className="font-typed text-xs text-steel-2">score {r.score}</span>
                   </div>
                 </div>
                 <div className="mt-3 h-2 bg-paper-2">

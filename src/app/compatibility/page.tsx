@@ -20,7 +20,7 @@ export default function CompatibilityPage() {
     <div className="pb-10">
       <PageTitle title="Compatibility" aside="Two readings, one report." />
       <div className="max-w-[860px]">
-        <Typed className="mb-4 block text-[14px] leading-[1.55]">
+        <Typed className="mb-4 block text-md leading-[1.55]">
           Put two readings side by side. The report uses the recorded cross-system
           correlations, and says plainly when there is nothing concrete to compare rather than
           inventing a number.

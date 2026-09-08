@@ -69,15 +69,15 @@ export default function SettingsPage() {
             <Typed>Opening your file.</Typed>
           ) : !user ? (
             <div className="flex flex-col items-start gap-4">
-              <Typed className="text-[14px]">Sign in to edit your file.</Typed>
+              <Typed className="text-md">Sign in to edit your file.</Typed>
               <Btn variant="primary" href="/auth/signin">Sign in</Btn>
             </div>
           ) : (
             <form onSubmit={handleSave} className="grid grid-cols-[96px_minmax(0,1fr)] items-baseline gap-x-3 gap-y-4">
               <div className="lab">Reader</div>
-              <div className="ln text-[16px]">{user.username}</div>
+              <div className="ln text-xl">{user.username}</div>
               <div className="lab">Email</div>
-              <div className="ln text-[16px]">{user.email || "none on file"}</div>
+              <div className="ln text-xl">{user.email || "none on file"}</div>
               <label htmlFor="avatar" className="lab">Portrait</label>
               <div className="flex flex-col gap-2">
                 <input id="avatar" type="url" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://example.com/portrait.jpg" className="input-paper" />
@@ -86,7 +86,7 @@ export default function SettingsPage() {
               <label htmlFor="bio" className="lab self-start pt-2">Notes</label>
               <div className="flex flex-col gap-1">
                 <textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="How you read, what you argue about, what to ask you." rows={4} maxLength={500} className="input-paper resize-y" />
-                <Typed className="text-[12px] text-steel-2">{bio.length} of 500</Typed>
+                <Typed className="text-sm text-steel-2">{bio.length} of 500</Typed>
               </div>
               <div className="col-span-2 flex flex-col gap-3 border-t-2 border-ink pt-4">
                 {message && <FormNote>{message}</FormNote>}

@@ -52,7 +52,7 @@ export default function NewPostPage({ params }: { params: Promise<{ slug: string
             <label className="flex flex-col gap-1">
               <span className="lab">Body</span>
               <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Your analysis, your question, or the case you want to make." rows={8} required className="input-paper resize-y" />
-              <Typed className="text-[12px] text-steel-2">{text.length} of 10000</Typed>
+              <Typed className="text-sm text-steel-2">{text.length} of 10000</Typed>
             </label>
             {error && <FormNote error>{error}</FormNote>}
             <div className="flex flex-col-reverse gap-3 border-t-2 border-ink pt-4 sm:flex-row sm:justify-end">

@@ -15,8 +15,8 @@ export default function TestIndexPage() {
           {TESTS.map((t) => (
             <div key={t.slug} className="row-fill flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-col gap-1">
-                <span className="font-display text-[33px] font-extrabold uppercase leading-none">{t.name}</span>
-                <Typed className="text-[14px]">
+                <span className="font-display text-11xl font-extrabold uppercase leading-none">{t.name}</span>
+                <Typed className="text-md">
                   {t.questions} questions, {t.minutes}. {t.line}
                 </Typed>
               </div>

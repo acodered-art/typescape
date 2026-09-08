@@ -146,8 +146,8 @@ export default async function TypeLandingPage({ params }: { params: Promise<Para
 
       <div className="flex max-w-[860px] flex-col gap-6">
         <Sheet className="flex flex-col gap-3 p-5">
-          <Typed className="text-[15px] leading-[1.6]">{td.description}.</Typed>
-          <Typed className="text-[13px] leading-[1.6] text-navy">
+          <Typed className="text-lg leading-[1.6]">{td.description}.</Typed>
+          <Typed className="text-base leading-[1.6] text-navy">
             This is the community&apos;s record of who codes as {td.value} in {sys.name}. Every
             reading is voted on, so the list reflects agreement rather than one editor&apos;s
             opinion.{" "}
@@ -195,7 +195,7 @@ export default async function TypeLandingPage({ params }: { params: Promise<Para
               <Link
                 key={t.value}
                 href={`/types/${sys.slug}/${t.value.toLowerCase()}`}
-                className={`border px-3 py-1 font-typed text-[13px] ${
+                className={`border px-3 py-1 font-typed text-base ${
                   t.value === td.value ? "border-blue bg-blue text-ink" : "border-steel hover:border-navy hover:bg-paper-2"
                 }`}
               >

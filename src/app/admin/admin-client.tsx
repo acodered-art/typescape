@@ -236,11 +236,11 @@ export default function AdminDashboard() {
             {!stats ? (
               <Typed>Opening the record.</Typed>
             ) : stats.topTypings.length === 0 ? (
-              <Typed className="text-[14px]">No reads on the record yet.</Typed>
+              <Typed className="text-md">No reads on the record yet.</Typed>
             ) : (
               stats.topTypings.map((t, i) => (
                 <div key={`${t.typingSystemId}-${t.typeValue}`} className="row-fill flex items-baseline justify-between gap-4 px-3 py-[10px]">
-                  <span className="font-typed text-[22px] font-bold">{t.typeValue}</span>
+                  <span className="font-typed text-6xl font-bold">{t.typeValue}</span>
                   <Typed>
                     {t._count.id} {t._count.id === 1 ? "read" : "reads"}, {i + 1}
                     {i === 0 ? "st" : i === 1 ? "nd" : i === 2 ? "rd" : "th"}
@@ -251,11 +251,11 @@ export default function AdminDashboard() {
 
             <SectionHead title="Portraits awaiting review" size={20} />
             {pendingImages.length === 0 ? (
-              <Typed className="text-[14px]">Nothing waiting.</Typed>
+              <Typed className="text-md">Nothing waiting.</Typed>
             ) : (
               pendingImages.map((img) => (
                 <div key={img.id} className="row-fill flex items-center justify-between gap-3 px-3 py-2">
-                  <Link href={`/profiles/${img.slug}`} className="text-[15px] underline">{img.name}</Link>
+                  <Link href={`/profiles/${img.slug}`} className="text-lg underline">{img.name}</Link>
                   <div className="flex gap-2">
                     <Btn
                       variant="small"
@@ -301,36 +301,36 @@ export default function AdminDashboard() {
                   if (e.key === "Enter") void loadUsers(userQuery);
                 }}
                 placeholder="Search username or email"
-                className="border border-steel bg-paper px-2 py-1 font-typed text-[13px] text-ink outline-none focus:border-blue"
+                className="border border-steel bg-paper px-2 py-1 font-typed text-base text-ink outline-none focus:border-blue"
               />
               <Btn variant="small" onClick={() => void loadUsers(userQuery)}>Search</Btn>
             </div>
 
             {users.length === 0 ? (
-              <Typed className="text-[14px]">No readers match.</Typed>
+              <Typed className="text-md">No readers match.</Typed>
             ) : (
               users.map((u) => (
                 <div key={u.id} className="row-fill flex flex-col gap-2 px-3 py-3 md:grid md:grid-cols-[190px_minmax(0,1fr)_auto] md:items-center md:gap-4">
                   <div className="flex flex-col">
-                    <Link href={`/user/${u.username}`} className="text-[15px] underline">{u.username}</Link>
-                    <Typed className="text-[11px] text-navy">
+                    <Link href={`/user/${u.username}`} className="text-lg underline">{u.username}</Link>
+                    <Typed className="text-xs text-navy">
                       joined {stamp(u.createdAt)}
                       {u.email ? ` · ${u.email}` : ""}
                     </Typed>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="border border-navy px-1.5 font-typed text-[11px] uppercase">{u.role}</span>
+                    <span className="border border-navy px-1.5 font-typed text-xs uppercase">{u.role}</span>
                     {u.effectiveStatus !== "active" && (
-                      <span className="border border-ink bg-ink px-1.5 font-typed text-[11px] uppercase text-paper">
+                      <span className="border border-ink bg-ink px-1.5 font-typed text-xs uppercase text-paper">
                         {STATUS_LABEL[u.effectiveStatus] ?? u.effectiveStatus}
                       </span>
                     )}
-                    <Typed className="text-[11px] text-navy">
+                    <Typed className="text-xs text-navy">
                       {u._count.comments} notes · {u._count.typings} reads · {u._count.votes} votes
                     </Typed>
                     {u.statusReason && (
-                      <Typed className="text-[11px] italic text-navy">“{u.statusReason}”</Typed>
+                      <Typed className="text-xs italic text-navy">“{u.statusReason}”</Typed>
                     )}
                   </div>
 
@@ -418,25 +418,25 @@ export default function AdminDashboard() {
             </div>
 
             {auditRows.length === 0 ? (
-              <Typed className="text-[14px]">No actions recorded yet.</Typed>
+              <Typed className="text-md">No actions recorded yet.</Typed>
             ) : (
               auditRows.map((row) => (
                 <div key={row.id} className="row-fill flex flex-col gap-1 px-3 py-2">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-typed text-[13px]">
+                    <span className="font-typed text-base">
                       <span className="font-bold">{row.actorName ?? "system"}</span>
                       {" · "}
                       <span className="text-blue">{row.action}</span>
                       {" · "}
                       {row.targetLabel ?? row.targetId}
                     </span>
-                    <span className="font-typed text-[11px] text-steel-2">{stamp(row.createdAt)}</span>
+                    <span className="font-typed text-xs text-steel-2">{stamp(row.createdAt)}</span>
                   </div>
                   {row.reason && (
-                    <Typed className="text-[12px] italic text-navy">“{row.reason}”</Typed>
+                    <Typed className="text-sm italic text-navy">“{row.reason}”</Typed>
                   )}
                   {row.before || row.after ? (
-                    <Typed className="text-[11px] text-steel-2">
+                    <Typed className="text-xs text-steel-2">
                       {row.before ? `before ${JSON.stringify(row.before)}` : ""}
                       {row.before && row.after ? " → " : ""}
                       {row.after ? `after ${JSON.stringify(row.after)}` : ""}
@@ -456,18 +456,18 @@ export default function AdminDashboard() {
             ) : (
               <>
                 <div className="flex flex-wrap gap-4">
-                  <Typed className="text-[14px]">
+                  <Typed className="text-md">
                     database: <span className="font-typed">{maintenance.health.database}</span>
                   </Typed>
-                  <Typed className="text-[14px]">
+                  <Typed className="text-md">
                     search: <span className="font-typed">{maintenance.health.search}</span>
                   </Typed>
                 </div>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-4">
                   {Object.entries(maintenance.counts).map(([k, v]) => (
                     <div key={k} className="flex items-baseline justify-between gap-2">
-                      <Typed className="text-[12px] text-navy">{k}</Typed>
-                      <span className="font-typed text-[14px]">{v}</span>
+                      <Typed className="text-sm text-navy">{k}</Typed>
+                      <span className="font-typed text-md">{v}</span>
                     </div>
                   ))}
                 </div>
@@ -480,7 +480,7 @@ export default function AdminDashboard() {
                     </Btn>
                   ))}
                 </div>
-                <Typed className="mt-1 text-[12px] leading-[1.6] text-navy">
+                <Typed className="mt-1 text-sm leading-[1.6] text-navy">
                   reindex-search rebuilds the search index; purge-sessions deletes expired session
                   rows; recount-consensus recomputes cached agreement from live votes. Each is safe
                   to run twice and is recorded in the audit log.
@@ -493,7 +493,7 @@ export default function AdminDashboard() {
 
       <Modal open={!!reasonPrompt} onClose={() => setReasonPrompt(null)} title={reasonPrompt?.title ?? ""}>
         <div className="flex flex-col gap-3">
-          <Typed className="text-[13px] leading-[1.5]">
+          <Typed className="text-base leading-[1.5]">
             A reason is required. It is shown to the reader and kept in the audit log.
           </Typed>
           <textarea
@@ -502,7 +502,7 @@ export default function AdminDashboard() {
             rows={3}
             maxLength={500}
             placeholder="Repeated stereotyping after a warning."
-            className="w-full border border-steel bg-paper px-2 py-1 font-body text-[14px] text-ink outline-none focus:border-blue"
+            className="w-full border border-steel bg-paper px-2 py-1 font-body text-md text-ink outline-none focus:border-blue"
           />
           <div className="flex gap-2">
             <Btn variant="primary" onClick={() => void runReasoned()} disabled={!reason.trim() || busy}>
