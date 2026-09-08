@@ -1,0 +1,21 @@
+[Unit]
+Description=TypeScape — personality database (Next.js)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/episteme/typescape
+# systemd starts with a minimal PATH; node and npx live in ~/.node/bin here.
+Environment=PATH=/home/episteme/.node/bin:/usr/local/bin:/usr/bin:/bin
+Environment=NODE_ENV=production
+Environment=INTERNAL_API_URL=http://localhost:3002
+ExecStart=/home/episteme/.node/bin/npx next start -p 3002
+Restart=on-failure
+RestartSec=5
+# next-server leaves the port bound if killed abruptly; give it time to close
+# cleanly before systemd escalates.
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target

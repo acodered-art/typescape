@@ -241,21 +241,36 @@ exists. Remaining:
       `additionalProperty`), `ItemList` on type pages (capped at 48 entries). Verified live
       on `/`, `/profiles/naruto-uzumaki`, and `/types/mbti/enfp`.
 
-## Live deployment (as of 2026-09-08 17:0x)
+## Live deployment (updated 2026-09-08)
 
-The production server runs **outside systemd** and must be restarted manually after a build:
+**A systemd user unit now exists** at `~/.config/systemd/user/typescape.service`
+(repo-tracked copy: `deploy/typescape.service`). It sets `NODE_ENV=production`,
+`INTERNAL_API_URL`, and an explicit `PATH` (systemd's default PATH does not include
+`~/.node/bin`, which is where `node`/`npx` live on this host). `Restart=on-failure`,
+`TimeoutStopSec=20` because next-server can hold the port through a hard kill.
+
+Lingering is already enabled for this user (`Linger=yes`), so once enabled the unit starts
+at boot without a login session.
 
 ```bash
-cd /home/episteme/typescape
+# One-time (needs a shell I cannot use):
+systemctl --user daemon-reload
+systemctl --user enable --now typescape
+
+# After a code change:
+cd /home/episteme/typescape && npm run build && systemctl --user restart typescape
+```
+
+Until the unit is enabled, the manual path still works:
+
+```bash
 npm run build
-fuser -k 3002/tcp                       # `kill` does not reliably stop next-server here
+fuser -k 3002/tcp                       # plain kill does not reliably free the port here
 nohup env NODE_ENV=production npx next start -p 3002 > /tmp/typescape-live.log 2>&1 &
 ```
 
-- `fuser -k 3002/tcp` is required: plain `kill -TERM/-KILL` on the next-server pid leaves the
-  port bound in this environment.
-- The log goes to `/tmp`, so it is lost on reboot and there is no auto-restart. **A systemd
-  user unit is the obvious next step** (see pending below).
+- The `ExecStart` command was verified to serve correctly under a stripped
+  systemd-like environment (`env -i PATH=... HOME=...`).
 - Server-side fetches use `INTERNAL_API_URL` (default `http://localhost:3002`).
 - Public URL `https://typescape.walker-fg.uk` is served by the system `cloudflared`
   (`/etc/cloudflared/config.yml` -> `localhost:3002`), not the per-user config.
@@ -270,4 +285,4 @@ nohup env NODE_ENV=production npx next start -p 3002 > /tmp/typescape-live.log 2
 | Duplicate route row in docs | `AGENTS.md` frontend table | `/collections/[slug]` listed twice |
 | 4 lint warnings | `eslint` output | unused `slug`, unused `qId`, `window.location.href`, `<img>` in dossier |
 | `use client` heavy components | `src/components/*` | `trait-vote-panel.tsx` 331 lines, `comment-section.tsx` 286 — split before extending |
-| No systemd unit for the site | host | Restart is manual (`fuser -k 3002/tcp` then `next start`); no auto-restart after reboot |
+| Systemd unit not yet enabled | `deploy/typescape.service` | Written and command-verified; needs `systemctl --user enable --now typescape` from a shell |
