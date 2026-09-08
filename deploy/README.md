@@ -57,6 +57,47 @@ fuser -k 3002/tcp
 nohup env NODE_ENV=production npx next start -p 3002 > /tmp/typescape-live.log 2>&1 &
 ```
 
+## Tailscale access (testing)
+
+The app is reachable on the tailnet over HTTPS, which is what makes it testable
+from a phone — cookies need a secure origin, so plain `http://<lan-ip>:3002`
+cannot sign in from a mobile browser.
+
+```
+https://episteme-1.tail19de5f.ts.net:8444        ->  http://127.0.0.1:3002
+```
+
+Set up with:
+
+```bash
+tailscale serve --bg --https 8444 http://127.0.0.1:3002
+tailscale serve status          # confirm
+tailscale serve --https=8444 off  # remove
+```
+
+**Port 8444, not 8443 or 443.** 443 is already the Vaultwarden serve, and 8443 is
+bound by the Stalwart mail container (`0.0.0.0:8443->443/tcp`). `tailscale serve`
+will happily report success and then fail to bind — check
+`journalctl -u tailscaled | grep 'address already in use'` if a new port does not
+answer even though `serve status` lists it.
+
+**Do not add a path prefix.** `--set-path /typescape` makes next-server serve
+assets from `/` while the browser asks for `/typescape/...`, so the page loads
+without CSS or JS. Either use a dedicated port (as above) or set a matching
+`basePath` in `next.config.ts`.
+
+Verifying from the host: connect to the **hostname**, not the IP — the TLS cert is
+issued for `episteme-1.tail19de5f.ts.net` and an IP connection fails the handshake:
+
+```bash
+python3 -c "
+import http.client, ssl
+h='episteme-1.tail19de5f.ts.net'
+c=http.client.HTTPSConnection(h,8444,timeout=20,context=ssl.create_default_context())
+c.request('GET','/',headers={'Host':h}); r=c.getresponse(); print(r.status, len(r.read()))
+"
+```
+
 ## Environment
 
 Configuration comes from `.env` (gitignored) plus the unit's `Environment=` lines. The unit
