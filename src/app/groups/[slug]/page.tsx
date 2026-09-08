@@ -4,6 +4,7 @@ import Link from "next/link";
 import { auth } from "@/lib/session";
 import { Btn, InkTag, PageTitle, Section, SectionHead, Sheet, Typed } from "@/components/dossier";
 import { GroupDetailClient } from "./group-detail-client";
+import { INTERNAL_API_URL } from "@/lib/api-url";
 
 interface GroupData {
   id: string;
@@ -39,7 +40,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 async function getGroup(slug: string): Promise<GroupData | null> {
-  const base = "http://localhost:3002";
+  const base = INTERNAL_API_URL;
   try {
     // The reader's cookies go along, or the API cannot say whether they are a member.
     const res = await fetch(`${base}/api/groups/${slug}`, { cache: "no-store", headers: { cookie: (await cookies()).toString() } });
@@ -51,7 +52,7 @@ async function getGroup(slug: string): Promise<GroupData | null> {
 }
 
 async function getPosts(slug: string): Promise<PostData[]> {
-  const base = "http://localhost:3002";
+  const base = INTERNAL_API_URL;
   try {
     const res = await fetch(`${base}/api/groups/${slug}/posts`, { cache: "no-store" });
     if (res.ok) return res.json();

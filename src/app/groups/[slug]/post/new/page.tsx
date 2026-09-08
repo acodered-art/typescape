@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { Btn, PageTitle, Sheet, Typed } from "@/components/dossier";
 import { FormNote } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 /** A new post on paper: title and body as fields, one primary "File the post". */
 export default function NewPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -19,7 +20,7 @@ export default function NewPostPage({ params }: { params: Promise<{ slug: string
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/groups/${slug}/posts`, {
+      const res = await fetchWithCsrf(`/api/groups/${slug}/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim(), text: text.trim() }),

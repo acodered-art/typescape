@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { ProfileCard } from "@/components/profile-card";
 import { EmptySlot, PageTitle, Sheet, Typed } from "@/components/dossier";
+import { INTERNAL_API_URL } from "@/lib/api-url";
 
 interface CollectionData {
   id: string;
@@ -29,7 +30,7 @@ interface CollectionData {
 }
 
 async function getCollection(slug: string): Promise<CollectionData | null> {
-  const base = "http://localhost:3002";
+  const base = INTERNAL_API_URL;
   try {
     // The reader's cookies go along, so an owner can open their own private collection.
     const res = await fetch(`${base}/api/collections/${slug}`, { cache: "no-store", headers: { cookie: (await cookies()).toString() } });

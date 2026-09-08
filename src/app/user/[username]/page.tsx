@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { FollowButton } from "@/components/follow-button";
 import { SetOwnType } from "@/components/set-own-type";
 import { Btn, CodeChip, EmptySlot, Field, FieldGrid, FolderTab, InkTag, OffTag, PaperClip, Portrait, Section, SectionHead, Sheet, Stamp, TabStrip, Typed, leadingRead } from "@/components/dossier";
+import { INTERNAL_API_URL } from "@/lib/api-url";
 
 interface UserData {
   username: string;
@@ -42,18 +43,32 @@ interface AchievementData {
   };
 }
 
-async function getUser(username: string): Promise<{ user: UserData | null; achievements: AchievementData[] }> {
-  const base = "http://localhost:3002";
+type CredibilityData = {
+  score: number | null;
+  sample: number;
+  agreed: number;
+  totalVotes: number;
+  provisional: boolean;
+};
+
+async function getUser(username: string): Promise<{
+  user: UserData | null;
+  achievements: AchievementData[];
+  credibility: CredibilityData | null;
+}> {
+  const base = INTERNAL_API_URL;
   try {
-    const [userRes, achRes] = await Promise.all([
+    const [userRes, achRes, credRes] = await Promise.all([
       fetch(`${base}/api/user/${username}`, { cache: "no-store" }),
       fetch(`${base}/api/user/${username}/achievements`, { cache: "no-store" }),
+      fetch(`${base}/api/user/${username}/credibility`, { cache: "no-store" }),
     ]);
     const user = userRes.ok ? await userRes.json() : null;
     const achievements = achRes.ok ? await achRes.json() : [];
-    return { user, achievements };
+    const credibility = credRes.ok ? await credRes.json() : null;
+    return { user, achievements, credibility };
   } catch {
-    return { user: null, achievements: [] };
+    return { user: null, achievements: [], credibility: null };
   }
 }
 
@@ -142,7 +157,7 @@ function nextAchievement(earned: Set<string>, counts: UserData["_count"]): strin
 
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
-  const [{ user, achievements }, me, role] = await Promise.all([getUser(username), readerHandle(), readerRole(username)]);
+  const [{ user, achievements, credibility }, me, role] = await Promise.all([getUser(username), readerHandle(), readerRole(username)]);
 
   if (!user) notFound();
 
@@ -191,6 +206,11 @@ export default async function UserPage({ params }: { params: Promise<{ username:
               <Field label="Since">{since}</Field>
               <Field label="Standing">
                 {user.reputation} reputation, reads count {calcVoteWeight(user.reputation).toFixed(1)} times
+              </Field>
+              <Field label="Credibility">
+                {credibility?.score === null || credibility === null
+                  ? "Not enough peer votes to measure yet."
+                  : `${credibility.score}% of ${count(credibility.sample, "judged read")} landed with the crowd${credibility.provisional ? " — provisional, needs more" : ""}.`}
               </Field>
               <Field label="Record">{record}</Field>
               <Field label="Notes" ruled={Boolean(user.bio)}>

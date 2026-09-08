@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Btn, Typed } from "@/components/dossier";
 import { FormNote, Modal } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 /** "+ Collection": a small typed link (card footers) or a desk button (profile page) that opens the reader's collections on paper. */
 export function AddToCollectionInline({ profileSlug, desk = false }: { profileSlug: string; desk?: boolean }) {
@@ -25,7 +26,7 @@ export function AddToCollectionInline({ profileSlug, desk = false }: { profileSl
 
   const handleAdd = async (collectionSlug: string) => {
     try {
-      const res = await fetch(`/api/collections/${collectionSlug}/items`, {
+      const res = await fetchWithCsrf(`/api/collections/${collectionSlug}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profileSlug }),

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/session";
 import { EmptySlot, PageTitle, Sheet, Typed } from "@/components/dossier";
 import { CreateCollectionButton } from "./create-collection-btn";
+import { INTERNAL_API_URL } from "@/lib/api-url";
 
 interface CollectionListData {
   id: string;
@@ -13,7 +14,7 @@ interface CollectionListData {
 }
 
 async function getCollections(): Promise<CollectionListData[]> {
-  const base = "http://localhost:3002";
+  const base = INTERNAL_API_URL;
   try {
     const res = await fetch(`${base}/api/collections`, { cache: "no-store" });
     if (res.ok) return res.json();

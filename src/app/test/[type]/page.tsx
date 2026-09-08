@@ -3,6 +3,7 @@ import { use, useState } from "react";
 import { MBTI_QUESTIONS, ENNEAGRAM_QUESTIONS, scoreMBTI, scoreEnneagram } from "@/lib/tests";
 import { TYPING_SYSTEMS } from "@/lib/typing-systems";
 import { Btn, PageTitle, Sheet, Stamp, Typed } from "@/components/dossier";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 const NAMES: Record<string, string> = { mbti: "MBTI", enneagram: "Enneagram" };
 
@@ -41,7 +42,7 @@ export default function TestPage({ params }: { params: Promise<{ type: string }>
 
     // Save result
     try {
-      await fetch("/api/test", {
+      await fetchWithCsrf("/api/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ testType: type, result: scored, answers }),

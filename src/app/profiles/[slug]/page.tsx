@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { calcConsensus } from "@/lib/utils";
+import { profileJsonLd } from "@/lib/json-ld";
 import { auth } from "@/lib/session";
 import { FindingsRail, VotePanel, type TypingRead } from "@/components/vote-panel";
 import { CommentSection } from "@/components/comment-section";
@@ -10,8 +12,9 @@ import { UploadImageButton } from "@/components/upload-image";
 import { AddTypingForm } from "@/components/add-typing";
 import { ProfileCard } from "@/components/profile-card";
 import { TraitVotePanel } from "@/components/trait-vote-panel";
-import { Field, FieldGrid, PaperClip, Portrait, Section, SectionHead, Stamp, Typed, bySystemOrder, leadingRead } from "@/components/dossier";
+import { Field, FieldGrid, FileCard, PaperClip, Portrait, Section, SectionHead, Stamp, Typed, bySystemOrder, leadingRead } from "@/components/dossier";
 import { ProfileTabs, TabLink, type ProfileTab } from "./profile-tabs";
+import { INTERNAL_API_URL } from "@/lib/api-url";
 
 const PROFILE_TABS: ProfileTab[] = ["subject", "findings", "evidence", "discussion"];
 
@@ -37,11 +40,23 @@ interface ProfilePageData {
   _count: { comments: number };
 }
 
+type SimilarResult = {
+  results: {
+    slug: string;
+    name: string;
+    imageUrl: string | null;
+    similarity: number;
+    sharedTraits: number;
+    basis: "traits" | "typings";
+  }[];
+  basis: "traits" | "typings" | "none";
+  traitCount: number;
+};
 type RelatedProfile = { name: string; slug: string; imageUrl: string | null; description: string | null; category: { name: string; slug: string } | null; typings: { typingSystem: { name: string; slug: string }; typeValue: string; confidence: number }[] };
 type CategoryNode = { name: string; slug: string; children: { name: string; slug: string }[] };
 
 async function getProfile(slug: string): Promise<ProfilePageData | null> {
-  const base = "http://localhost:3002";
+  const base = INTERNAL_API_URL;
   try {
     const res = await fetch(`${base}/api/profiles/${slug}`, { cache: "no-store" });
     if (!res.ok) return null;
@@ -104,6 +119,37 @@ function pickStamp(typings: TypingRead[]): { code: string; line: string } | null
   return null;
 }
 
+/**
+ * Share/SEO metadata for a character file. The `opengraph-image.tsx` in this
+ * folder supplies the card image automatically once `openGraph` is set here.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const profile = await getProfile(slug);
+  if (!profile) return { title: "File not found — TypeScape" };
+
+  const systems = new Set(profile.typings.map((t) => t.typingSystem.slug));
+  const lead = profile.typings[0];
+  const typed = lead ? ` (${lead.typeValue})` : "";
+  const title = `${profile.name}${typed} — TypeScape`;
+  const description =
+    profile.description?.slice(0, 155) ||
+    `Community-filed personality readings for ${profile.name} across ${systems.size || "multiple"} typing systems.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/profiles/${slug}` },
+    openGraph: {
+      title,
+      description,
+      type: "profile",
+      url: `/profiles/${slug}`,
+    },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
+
 export default async function ProfilePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { slug } = await params;
   const sp = await searchParams;
@@ -113,9 +159,14 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   const profile = await getProfile(slug);
   if (!profile) notFound();
 
-  const base = "http://localhost:3002";
-  const [related, tree, evidenceCount, mine] = await Promise.all([
+  const base = INTERNAL_API_URL;
+  const [related, similar, tree, evidenceCount, mine] = await Promise.all([
     getJson<RelatedProfile[]>(`${base}/api/profiles/${slug}/related`, []),
+    getJson<SimilarResult>(`${base}/api/profiles/${slug}/similar?limit=6`, {
+      results: [],
+      basis: "none" as const,
+      traitCount: 0,
+    }),
     getJson<CategoryNode[]>(`${base}/api/categories`, []),
     countEvidence(profile.id),
     myVotes(profile.id),
@@ -300,6 +351,53 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
       <div className="flex justify-end">
         <AddToCollectionInline profileSlug={profile.slug} desk />
       </div>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            profileJsonLd({
+              name: profile.name,
+              slug: profile.slug,
+              description: profile.description,
+              imageUrl: profile.imageUrl,
+              category: profile.category,
+              readings: typings.map((t) => ({ system: t.typingSystem.slug, type: t.typeValue })),
+              comments: profile._count.comments,
+            })
+          ),
+        }}
+      />
+
+      {similar.results.length > 0 && (
+        <section className="flex flex-col gap-[14px]">
+          <SectionHead
+            title={similar.basis === "traits" ? "Closest surveys" : "Closest readings"}
+            aside={
+              similar.basis === "traits"
+                ? "by trait-vector distance"
+                : "shared typings (trait surveys too thin)"
+            }
+          />
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            {similar.results.map((p) => (
+              <FileCard
+                key={p.slug}
+                href={`/profiles/${p.slug}`}
+                name={p.name}
+                series="Survey match"
+                aside={
+                  similar.basis === "traits"
+                    ? `${Math.round(p.similarity * 100)}% · ${p.sharedTraits} traits`
+                    : `${Math.round(p.similarity * 100)}% · readings`
+                }
+                imageUrl={p.imageUrl}
+                variant="desk"
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {related.length > 0 && (
         <section className="flex flex-col gap-[14px]">

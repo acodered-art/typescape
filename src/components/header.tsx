@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface UserInfo {
   id?: string;
@@ -22,12 +23,16 @@ const noCookie = () => "";
 
 const NAV = [
   { href: "/search", label: "Browse" },
+  { href: "/daily", label: "Daily" },
+  { href: "/match", label: "Match" },
   { href: "/systems", label: "Systems" },
   { href: "/compare", label: "Compare" },
+  { href: "/compatibility", label: "Compatibility" },
   { href: "/feed", label: "Feed" },
   { href: "/test", label: "Tests" },
   { href: "/collections", label: "Collections" },
   { href: "/groups", label: "Groups" },
+  { href: "/plans", label: "Plans" },
 ];
 
 function SearchIcon({ size = 14 }: { size?: number }) {
@@ -103,7 +108,7 @@ export function Header() {
   };
 
   const handleSignOut = async () => {
-    await fetch("/api/signout", { method: "POST" });
+    await fetchWithCsrf("/api/signout", { method: "POST" });
     setApiUser(null);
     setSignedOut(true);
     setMenu(false);

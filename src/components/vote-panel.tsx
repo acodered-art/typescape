@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { calcConsensus } from "@/lib/utils";
 import { getCorrelations } from "@/lib/correlations";
 import { Btn, EmptySlot, InkTag, SectionHead, SegBar, Typed, bySystemOrder } from "@/components/dossier";
+import { ContestModal, readingLabel } from "@/components/contest-modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 export type TypingRead = {
   id: string;
@@ -113,12 +115,14 @@ export function VotePanel({ profileSlug, initial, initialMine, mode = "summary" 
     };
   }, [fetchTypings, initial, profileSlug]);
 
+  const [contest, setContest] = useState<{ id: string; label: string } | null>(null);
+
   const handleVote = async (typingId: string, voteValue: 1 | -1) => {
     // Optimistic toggle; the refetch after the request settles the real counts.
     setMyVotes((prev) => ({ ...prev, [typingId]: prev[typingId] === voteValue ? null : voteValue }));
     setNote("");
     try {
-      const res = await fetch(`/api/typings/${typingId}/vote`, {
+      const res = await fetchWithCsrf(`/api/typings/${typingId}/vote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ voteValue }),
@@ -146,6 +150,14 @@ export function VotePanel({ profileSlug, initial, initialMine, mode = "summary" 
             Disagree
           </Btn>
         )}
+        <Btn
+          variant="small"
+          onClick={() => setContest({ id: t.id, label: readingLabel(t.typingSystem.name, t.typeValue) })}
+          className="border-steel text-navy"
+          title="Disagree with a written argument — shows the reading as contested"
+        >
+          Contest
+        </Btn>
       </div>
     );
   };
@@ -235,6 +247,18 @@ export function VotePanel({ profileSlug, initial, initialMine, mode = "summary" 
           </div>
         );
       })}
+      {contest && (
+        <ContestModal
+          typingId={contest.id}
+          readingLabel={contest.label}
+          open
+          onClose={() => setContest(null)}
+          onFiled={() => {
+            window.dispatchEvent(new Event(VOTES_EVENT));
+            void fetchTypings();
+          }}
+        />
+      )}
     </div>
   );
 }

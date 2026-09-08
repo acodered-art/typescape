@@ -3,7 +3,9 @@ import { prisma } from "@/lib/db";
 import { ProfileCard } from "@/components/profile-card";
 import { TypingBadge } from "@/components/typing-badge";
 import { StreaksAndChallenges } from "@/components/streaks/streaks-display";
+import { DailyCard } from "@/components/daily-card";
 import { Btn, FileCard, InkTag, NavyCard, SectionHead, SegBar, bySystemOrder, uniqueReads } from "@/components/dossier";
+import { INTERNAL_API_URL } from "@/lib/api-url";
 
 type Typing = { typingSystem: { name: string; slug: string }; typeValue: string; confidence: number };
 type ListProfile = { name: string; slug: string; imageUrl: string | null; description: string | null; category: { name: string; slug: string } | null; typings: Typing[] };
@@ -97,7 +99,7 @@ async function getBoard(): Promise<BoardRow[]> {
 }
 
 async function getHomeData() {
-  const base = "http://localhost:3002";
+  const base = INTERNAL_API_URL;
   const [stats, recentData, categories, board] = await Promise.all([
     getJson<Stats>(`${base}/api/stats`, { profiles: 0, typings: 0, votes: 0, users: 0, comments: 0 }),
     getJson<{ profiles: ListProfile[] }>(`${base}/api/profiles?limit=4&sort=recent`, { profiles: [] }),
@@ -194,6 +196,8 @@ export default async function HomePage() {
       {/* Recently opened */}
       {recent.length > 0 && (
         <section className="flex flex-col gap-[14px] pb-9">
+          <DailyCard />
+
           <SectionHead title="Recently opened" aside={<Link href="/search" className="text-blue underline hover:text-paper">Browse all files</Link>} />
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
             {recent.map((p) => (

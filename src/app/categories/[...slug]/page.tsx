@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageTitle } from "@/components/dossier";
 import { Cabinet, FileSheet, ShowMore, SortTabs, type BrowseProfile } from "@/app/search/browse-parts";
+import { INTERNAL_API_URL } from "@/lib/api-url";
 
 interface CategoryPageProps {
   params: Promise<{ slug: string[] }>;
@@ -17,7 +18,7 @@ type Category = {
 };
 
 async function getCategoryData(slug: string, sort: string) {
-  const base = "http://localhost:3002";
+  const base = INTERNAL_API_URL;
 
   const [catRes, profilesRes] = await Promise.all([
     fetch(`${base}/api/categories?slug=${encodeURIComponent(slug)}`, { cache: "no-store" }),

@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Btn } from "@/components/dossier";
 import { FormNote, Modal } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 /** "+ New collection" on the desk; the form on paper. Opening the collection goes straight to it. */
 export function CreateCollectionButton() {
@@ -19,7 +20,7 @@ export function CreateCollectionButton() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/collections", {
+      const res = await fetchWithCsrf("/api/collections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined }),

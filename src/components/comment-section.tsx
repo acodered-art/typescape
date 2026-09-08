@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Btn, SectionHead, Typed } from "@/components/dossier";
 import { FormNote } from "@/components/dossier/modal";
 import { useReaderHandle } from "@/components/dossier/reader";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface CommentUser {
   username: string;
@@ -131,7 +132,7 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
     );
 
     try {
-      const res = await fetch(`/api/comments/${commentId}/vote`, {
+      const res = await fetchWithCsrf(`/api/comments/${commentId}/vote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ voteValue }),
@@ -152,7 +153,7 @@ export function CommentSection({ profileSlug }: CommentSectionProps) {
     setSubmitting(true);
     setNote("");
     try {
-      const res = await fetch(`/api/profiles/${profileSlug}/comments`, {
+      const res = await fetchWithCsrf(`/api/profiles/${profileSlug}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: body.trim(), parentId: parentId || undefined }),

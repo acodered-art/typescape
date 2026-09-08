@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Btn, FolderTab, InkTag, PageTitle, Portrait, SectionHead, Sheet, TabStrip, Typed } from "@/components/dossier";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface StatsData {
   counts: Record<string, number>;
@@ -80,7 +81,7 @@ export default function AdminDashboard() {
 
   const handleImageAction = async (profileId: string, action: "approve" | "reject") => {
     try {
-      const res = await fetch("/api/admin/images", {
+      const res = await fetchWithCsrf("/api/admin/images", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profileId, action }),
@@ -90,7 +91,7 @@ export default function AdminDashboard() {
   };
 
   const setRole = async (userId: string, role: "moderator" | "admin" | "user") => {
-    await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, role }) });
+    await fetchWithCsrf("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, role }) });
     window.location.reload();
   };
 

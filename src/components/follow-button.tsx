@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Btn } from "@/components/dossier";
 import { FormNote } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 /** The one primary button on another reader's file. The API toggles and reports the new state. */
 export function FollowButton({ username }: { username: string }) {
@@ -13,7 +14,7 @@ export function FollowButton({ username }: { username: string }) {
     setLoading(true);
     setNote("");
     try {
-      const res = await fetch(`/api/follow/${username}`, { method: "POST" });
+      const res = await fetchWithCsrf(`/api/follow/${username}`, { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         setFollowing(data.following);

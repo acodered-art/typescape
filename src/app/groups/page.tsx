@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/session";
 import { EmptySlot, PageTitle, SectionHead, Sheet } from "@/components/dossier";
 import { CreateGroupButton } from "./create-group-btn";
+import { INTERNAL_API_URL } from "@/lib/api-url";
 
 interface GroupData {
   id: string;
@@ -24,7 +25,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 async function getGroups() {
-  const base = "http://localhost:3002";
+  const base = INTERNAL_API_URL;
   try {
     const res = await fetch(`${base}/api/groups`, { cache: "no-store" });
     if (res.ok) return res.json();

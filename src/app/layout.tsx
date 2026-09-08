@@ -4,6 +4,8 @@ import "./globals.css";
 import { Header } from "@/components/header";
 import { FloatingAddButton } from "@/components/floating-add-button";
 import { InkFilter } from "@/components/dossier";
+import { organizationJsonLd } from "@/lib/json-ld";
+import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
 
 // Printed face: labels, headings, names, the wordmark, the stamp.
 // Google now ships Big Shoulders as one variable family with an optical-size axis;
@@ -32,10 +34,18 @@ const body = Public_Sans({
 export const metadata: Metadata = {
   title: "TypeScape — The Personality Database",
   description: "Discover, rate, and debate personality types for fictional characters, celebrities, and more. Community-driven MBTI, Enneagram, Big Five, and more.",
+  // Without this, relative `openGraph.images` resolve against the request origin
+  // (http://localhost:3002 behind the tunnel), so social cards point at a URL no
+  // crawler can fetch.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://typescape.walker-fg.uk"),
   openGraph: {
     title: "TypeScape",
     description: "Community-driven personality database for characters and celebrities.",
     type: "website",
+    siteName: process.env.NEXT_PUBLIC_SITE_NAME || "TypeScape",
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 };
 
@@ -43,11 +53,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${typed.variable} ${body.variable}`}>
       <body className="min-h-screen bg-ink font-body text-paper">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+        />
         <InkFilter />
         <Header />
         {/* The page is a 1100px desk: 40px padding either side of 1020px of content. */}
         <main className="mx-auto w-full max-w-[1100px] px-4 pb-10 sm:px-10">{children}</main>
         <FloatingAddButton />
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

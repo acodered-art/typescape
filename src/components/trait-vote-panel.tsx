@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { DisorderVotePanel } from "@/components/disorder-vote-panel";
 import { Section, SectionHead, Typed } from "@/components/dossier";
 import { FormNote } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
+import { TraitRadar } from "@/components/trait-radar";
 
 interface Trait {
   id: string;
@@ -40,6 +42,11 @@ interface VoteData {
   breakdown: BreakdownEntry[];
   autoNone: boolean;
   description: string;
+  verdict?: string;
+  topReference?: { disorderId: string; name: string; values: number[] } | null;
+  comorbidities?: { a: { name: string; percentage: number }; b: { name: string; percentage: number }; strength: number }[];
+  invertedPhrase?: string | null;
+  inversions?: { slug: string; name: string; communityLabel: string; patternLabel: string; gap: number }[];
 }
 
 const count = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
@@ -181,7 +188,7 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
     setVoting((prev) => ({ ...prev, [traitId]: true }));
     setMessage("");
     try {
-      const res = await fetch(`/api/profiles/${profileSlug}/trait-votes`, {
+      const res = await fetchWithCsrf(`/api/profiles/${profileSlug}/trait-votes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ traitId, value }),
@@ -233,6 +240,21 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
             ? "Rings show how closely the community survey matches each pattern. The crosshair sits between the closest ones."
             : "The map fills in as readers survey this character across twelve traits."}
         </Typed>
+        {surveyed > 0 && voteData && voteData.communityVector.some((v) => v !== 0) && (
+          <div className="mt-2 border-t border-steel pt-3">
+            <div className="lab mb-2">Community shape</div>
+            <TraitRadar
+              axes={traits.map((t) => ({ slug: t.slug, name: t.name, lowLabel: t.lowLabel, highLabel: t.highLabel }))}
+              series={[
+                { label: "Community survey", values: voteData.communityVector, tone: "blue" as const },
+                ...(voteData.topReference
+                  ? [{ label: voteData.topReference.name, values: voteData.topReference.values, tone: "steel" as const }]
+                  : []),
+              ]}
+              caption={`Community trait survey versus ${voteData.topReference?.name ?? "no pattern"}.`}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-[10px]">
@@ -250,6 +272,37 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
             ))}
             <div className="border-t border-ink pt-[10px] font-typed text-[14px] leading-[1.5]">{readSentence}</div>
             {voteData?.description && <p className="text-[14px] leading-[1.5]">{voteData.description}</p>}
+            {voteData?.invertedPhrase && (
+              <div className="mt-2 border-t border-steel pt-3">
+                <div className="lab mb-1">Reads against the pattern</div>
+                <div className="font-typed text-[14px] leading-[1.5]">{voteData.invertedPhrase}.</div>
+                {voteData.inversions?.slice(0, 3).map((inv) => (
+                  <div key={inv.slug} className="mt-1 text-[13px] leading-[1.5] text-navy">
+                    <span className="font-typed">{inv.name}</span>: the community reads{" "}
+                    <strong>{inv.communityLabel}</strong>, where the pattern expects{" "}
+                    {inv.patternLabel}.
+                  </div>
+                ))}
+              </div>
+            )}
+            {voteData?.comorbidities && voteData.comorbidities.length > 0 && (
+              <div className="mt-2 border-t border-steel pt-3">
+                <div className="lab mb-1">Reads as a blend</div>
+                {voteData.comorbidities.slice(0, 3).map((c, i) => (
+                  <div key={i} className="flex items-baseline justify-between gap-3 text-[13px]">
+                    <span className="truncate" title={`${c.a.name} + ${c.b.name}`}>
+                      {shortName(c.a.name)} + {shortName(c.b.name)}
+                    </span>
+                    <span className="shrink-0 font-typed text-[12px] text-navy">
+                      {c.a.percentage}% / {c.b.percentage}%
+                    </span>
+                  </div>
+                ))}
+                <Typed className="mt-1 text-[11px]">
+                  Both patterns clear 20% of the read, so the survey sees a mix rather than one label.
+                </Typed>
+              </div>
+            )}
           </>
         )}
 

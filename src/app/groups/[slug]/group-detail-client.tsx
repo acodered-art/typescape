@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Btn } from "@/components/dossier";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 /** Join is the one primary button on a group; a member sees Leave (or Admin) as a secondary. */
 export function GroupDetailClient({ slug, isMember, isAdmin }: { slug: string; isMember: boolean; isAdmin: boolean }) {
@@ -14,7 +15,7 @@ export function GroupDetailClient({ slug, isMember, isAdmin }: { slug: string; i
     setLoading(true);
     setNote("");
     try {
-      const res = await fetch(`/api/groups/${slug}/members`, { method: "POST" });
+      const res = await fetchWithCsrf(`/api/groups/${slug}/members`, { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         setMember(data.member);

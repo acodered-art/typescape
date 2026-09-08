@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
+import { guardCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 import { generateSlug } from "@/lib/utils";
 import { rateLimit } from "@/lib/rate-limit";
+import { clientIp, isInternalRequest } from "@/lib/client-ip";
+import { searchProfiles, buildDocsFromDb, indexProfiles } from "@/lib/search";
 
 export async function GET(req: Request) {
-  const ip = req.headers.get("x-forwarded-for") || "unknown";
-  // Skip rate limiting for SSR self-fetches (localhost) and increase limit for real clients
-  const isLocal = ip === "127.0.0.1" || ip === "::1" || ip === "unknown" || ip.startsWith("172.");
-  if (!isLocal) {
-    const rl = rateLimit(`profiles-get:${ip}`, 60, 60_000);
+  const ip = clientIp(req);
+  // SSR self-fetches come from the container/localhost. Anything we cannot
+  // attribute is limited on the shared "unknown" bucket rather than exempted.
+  if (!isInternalRequest(req)) {
+    const rl = await rateLimit(`profiles-get:${ip}`, 60, 60_000);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
@@ -82,6 +85,67 @@ export async function GET(req: Request) {
       break;
   }
 
+  // ── Search path ─────────────────────────────────────────────────────────
+  // When there is a text query, ask MeiliSearch first: it gives typo tolerance
+  // and ranking that Postgres `contains` cannot. Any failure (unreachable,
+  // timeout, bad reply) returns null and we fall through to the SQL path, so a
+  // search outage degrades to today's behaviour instead of breaking the page.
+  if (q) {
+    const meili = await searchProfiles({
+      q,
+      types: types.length ? types : undefined,
+      categorySlug: category ?? undefined,
+      sort,
+      limit,
+      offset,
+    });
+
+    if (meili) {
+      // Hydrate the hits with the same shape the SQL path returns, in the
+      // relevance order Meili gave us.
+      const rows = await prisma.profile.findMany({
+        where: { id: { in: meili.hits.map((h) => h.id) } },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          categoryId: true,
+          description: true,
+          imageUrl: true,
+          imageModeration: true,
+          bio: true,
+          isVerified: true,
+          viewCount: true,
+          createdAt: true,
+          updatedAt: true,
+          category: { select: { name: true, slug: true } },
+          typings: {
+            select: {
+              typeValue: true,
+              details: true,
+              isCommunity: true,
+              typingSystem: { select: { name: true, slug: true } },
+            },
+            take: 5,
+          },
+          _count: { select: { typings: true, comments: true } },
+        },
+      });
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      const profiles = meili.hits
+        .map((h) => byId.get(h.id))
+        .filter((p): p is NonNullable<typeof p> => !!p);
+
+      return NextResponse.json({
+        profiles,
+        total: meili.total,
+        limit,
+        offset,
+        engine: "meilisearch",
+      });
+    }
+  }
+
   const [profiles, total] = await Promise.all([
     prisma.profile.findMany({
       where,
@@ -121,14 +185,16 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const csrfError = await guardCsrf(req);
+  if (csrfError) return csrfError;
   const { auth } = await import("@/lib/session");
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const ip = req.headers.get("x-forwarded-for") || "unknown";
-  const rl = rateLimit(`profile-create:${ip}`, 3, 60_000);
+  const ip = clientIp(req);
+  const rl = await rateLimit(`profile-create:${ip}`, 3, 60_000);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Too many profiles" }, { status: 429 });
   }
@@ -162,6 +228,15 @@ export async function POST(req: Request) {
       createdBy: session.user.id,
     },
   });
+
+  // Keep the search index fresh. Best-effort: a search outage must not fail a
+  // creation, and the reindex script can always repair drift.
+  try {
+    const docs = await buildDocsFromDb(prisma as never, { id: profile.id });
+    await indexProfiles(docs);
+  } catch {
+    /* ignored: profile is created, index catches up later */
+  }
 
   return NextResponse.json(profile, { status: 201 });
 }

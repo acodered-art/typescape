@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Btn } from "@/components/dossier";
 import { FormNote, Modal, SelectPaper } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 /** "Add your read": a paper modal with the system and type on typed selects. Filing reloads the file. */
 export function AddTypingForm({ profileSlug, variant = "primary", label = "Add your read" }: { profileSlug: string; variant?: "primary" | "secondary" | "small"; label?: string }) {
@@ -32,7 +33,7 @@ export function AddTypingForm({ profileSlug, variant = "primary", label = "Add y
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`/api/profiles/${profileSlug}/typings`, {
+      const res = await fetchWithCsrf(`/api/profiles/${profileSlug}/typings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ typingSystemId: systemId, typeValue }),

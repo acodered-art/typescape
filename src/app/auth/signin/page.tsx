@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Btn, FolderTab, Sheet, TabStrip, Typed } from "@/components/dossier";
 import { FormNote } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 const FIELD = "w-full border-0 border-b border-steel bg-transparent px-0 py-1 font-typed text-[16px] text-ink outline-none placeholder:text-steel-2 focus:border-blue";
 
@@ -16,7 +17,7 @@ export default function SignInPage() {
   const [success, setSuccess] = useState("");
 
   const doRegister = async () => {
-    const res = await fetch("/api/register", {
+    const res = await fetchWithCsrf("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, email, password }),
@@ -33,7 +34,7 @@ export default function SignInPage() {
   };
 
   const doLogin = async () => {
-    const res = await fetch("/api/login", {
+    const res = await fetchWithCsrf("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -89,7 +90,7 @@ export default function SignInPage() {
           <label htmlFor="email" className="lab">Email</label>
           <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className={FIELD} />
           <label htmlFor="password" className="lab">Password</label>
-          <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "signup" ? "At least 6 characters" : "Your password"} required minLength={6} className={FIELD} />
+          <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "signup" ? "At least 8 characters" : "Your password"} required minLength={8} className={FIELD} />
           <div className="col-span-2 flex flex-col gap-3 pt-2">
             {error && <FormNote error>{error}</FormNote>}
             {success && <FormNote>{success}</FormNote>}

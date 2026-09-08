@@ -3,6 +3,7 @@ import { useState } from "react";
 import { TYPING_SYSTEMS } from "@/lib/typing-systems";
 import { Btn } from "@/components/dossier";
 import { FormNote, Modal, SelectPaper } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 const SYSTEMS = TYPING_SYSTEMS.filter((s) => s.types?.length);
 const shortName = (name: string) => name.replace(/\s*\(.*\)\s*$/, "").trim() || name;
@@ -22,7 +23,7 @@ export function SetOwnType({ username, currentType }: { username: string; curren
     setSaving(true);
     setNote("");
     try {
-      const res = await fetch("/api/me/type", {
+      const res = await fetchWithCsrf("/api/me/type", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ system, typeValue }),

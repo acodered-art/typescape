@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Btn, PageTitle, Section, SectionHead, Sheet, Typed } from "@/components/dossier";
 import { FormNote } from "@/components/dossier/modal";
 import { useReaderHandle } from "@/components/dossier/reader";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface PostUser {
   id: string;
@@ -68,7 +69,7 @@ export default function PostPage({ params }: { params: Promise<{ slug: string; p
     setSubmitting(true);
     setNote("");
     try {
-      const res = await fetch(`/api/groups/${slug}/posts/${postId}/replies`, {
+      const res = await fetchWithCsrf(`/api/groups/${slug}/posts/${postId}/replies`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: replyText.trim() }),

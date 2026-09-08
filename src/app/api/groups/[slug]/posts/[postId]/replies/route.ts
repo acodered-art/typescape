@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
+import { guardCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/session";
 import { rateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/client-ip";
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ slug: string; postId: string }> }
 ) {
+  const csrfError = await guardCsrf(req);
+  if (csrfError) return csrfError;
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const ip = req.headers.get("x-forwarded-for") || "unknown";
-  const rl = rateLimit(`group-reply:${ip}`, 10, 60_000);
+  const ip = clientIp(req);
+  const rl = await rateLimit(`group-reply:${ip}`, 10, 60_000);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Too many replies" }, { status: 429 });
   }

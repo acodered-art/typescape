@@ -21,6 +21,9 @@ model User {
   bio           String?
   reputation    Int       @default(0)
   role          String    @default("user") // user, moderator, admin
+  /// Billing plan slug: "free" | "pro" | "business".
+  plan          String    @default("free")
+  planRenewsAt  DateTime? @map("plan_renews_at")
   ownType       String?   @map("own_type")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
@@ -51,6 +54,8 @@ model User {
   groupPosts         GroupPost[]
   groupPostReplies   GroupPostReply[]
   groupsCreated      Group[]        @relation("GroupCreator")
+  apiKeys            ApiKey[]
+  subscriptions      Subscription[]
 
   @@map("users")
 }
@@ -161,6 +166,13 @@ model Profile {
   @@index([slug])
   @@index([categoryId])
   @@index([name])
+  // Trigram indexes power the Postgres fallback search (`ILIKE '%term%'`) used
+  // when MeiliSearch is unavailable. The extension is created by the migration.
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "profiles_name_trgm_idx")
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin, map: "profiles_description_trgm_idx")
+  @@index([bio(ops: raw("gin_trgm_ops"))], type: Gin, map: "profiles_bio_trgm_idx")
+  @@index([viewCount(sort: Desc)], map: "profiles_view_count_idx")
+  @@index([createdAt(sort: Desc)], map: "profiles_created_at_idx")
   @@map("profiles")
 }
 
@@ -187,6 +199,8 @@ model ProfileTyping {
   @@unique([profileId, typingSystemId, typeValue, createdBy])
   @@index([typingSystemId, typeValue])
   @@index([profileId])
+  // Backs the multi-type AND filter (one EXISTS per requested typeValue).
+  @@index([typeValue])
   @@map("profile_typings")
 }
 
@@ -294,6 +308,8 @@ model Activity {
   user User @relation(fields: [userId], references: [id])
 
   @@index([createdAt])
+  // The feed reads the newest rows for a set of followed users.
+  @@index([userId, createdAt(sort: Desc)])
   @@map("activities")
 }
 
@@ -639,4 +655,77 @@ model GroupPostReply {
 
   @@index([postId])
   @@map("group_post_replies")
+}
+// ─── Public API keys ─────────────────────────────────────────
+
+/// A developer key for the public read API. The plaintext key is shown once on
+/// creation; only a SHA-256 hash is stored, so a database leak does not hand
+/// out working credentials.
+model ApiKey {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  name       String    @default("default")
+  keyHash    String    @unique @map("key_hash")
+  /// Human-readable prefix, e.g. "ts_live_ab12", for support and revocation UIs.
+  prefix     String    @unique
+  scopes     String[]  @default(["read"])
+  /// Requests allowed per rolling minute. Null means the plan default.
+  rateLimit  Int?      @map("rate_limit")
+  requestCount Int     @default(0) @map("request_count")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+// ─── Billing ─────────────────────────────────────────────────
+
+/// A plan's limits. Seeded from `src/lib/plans.ts` so the code and the database
+/// agree on what "pro" means.
+model Plan {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  name        String
+  /// Monthly price in whole cents; 0 for free.
+  priceCents  Int      @default(0) @map("price_cents")
+  /// API requests allowed per rolling minute on this plan.
+  apiRateLimit Int     @map("api_rate_limit")
+  /// Max active API keys.
+  maxApiKeys  Int      @map("max_api_keys")
+  /// Feature switches, e.g. { advancedVectors: true, adFree: true }.
+  features    Json     @default("{}")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+/// One row per paid period. `provider` is left generic so a processor can be
+/// swapped without a schema change.
+model Subscription {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  planSlug      String    @map("plan_slug")
+  status        String    @default("active") // active, past_due, canceled, expired
+  provider      String    @default("manual") // manual, stripe, ...
+  providerRef   String?   @map("provider_ref")
+  currentPeriodStart DateTime @default(now()) @map("current_period_start")
+  currentPeriodEnd   DateTime @map("current_period_end")
+  cancelAtPeriodEnd Boolean @default(false) @map("cancel_at_period_end")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan @relation(fields: [planSlug], references: [slug])
+
+  @@index([userId])
+  @@index([status])
+  @@map("subscriptions")
 }

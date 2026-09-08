@@ -3,6 +3,7 @@ import { TYPING_SYSTEMS } from "@/lib/typing-systems";
 import { PageTitle } from "@/components/dossier";
 import { SearchFilters } from "./search-filters";
 import { FileSheet, ShowMore, SortTabs, ThisSearch, type BrowseProfile, type FacetType } from "./browse-parts";
+import { INTERNAL_API_URL } from "@/lib/api-url";
 
 interface SearchPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -54,7 +55,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (category) params.category = category;
   if (sort) params.sort = sort;
 
-  const base = "http://localhost:3002";
+  const base = INTERNAL_API_URL;
   const { profiles, total, facets } = await getData(params, limit, base);
 
   function removeParam(key: string) {

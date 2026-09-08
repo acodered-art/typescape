@@ -1,15 +1,24 @@
 import { NextResponse } from "next/server";
+import { guardCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { rateLimit } from "@/lib/rate-limit";
+import { checkBodySize } from "@/lib/body-size";
+import { clientIp } from "@/lib/client-ip";
 
 export async function POST(req: Request) {
-  const ip = req.headers.get("x-forwarded-for") || "unknown";
-  const rl = rateLimit(`login:${ip}`, 5, 60_000); // 5 attempts per minute per IP
+  const csrfError = await guardCsrf(req);
+  if (csrfError) return csrfError;
+  const ip = clientIp(req);
+  const rl = await rateLimit(`login:${ip}`, 5, 60_000); // 5 attempts per minute per IP
   if (!rl.allowed) {
     return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }
+
+  // Body size limit
+  const sizeErr = checkBodySize(req);
+  if (sizeErr) return NextResponse.json({ error: sizeErr }, { status: 413 });
 
   const body = await req.json();
   const { email, password } = body;

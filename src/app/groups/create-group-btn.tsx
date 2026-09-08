@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Btn } from "@/components/dossier";
 import { FormNote, Modal, SelectPaper } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 /** "+ New group" on the desk; the form on paper. Opening the group goes straight to it. */
 export function CreateGroupButton() {
@@ -21,7 +22,7 @@ export function CreateGroupButton() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/groups", {
+      const res = await fetchWithCsrf("/api/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

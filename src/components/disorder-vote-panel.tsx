@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Typed } from "@/components/dossier";
 import { FormNote } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface Disorder {
   id: string;
@@ -96,7 +97,7 @@ export function DisorderVotePanel({ profileSlug }: { profileSlug: string }) {
     setVoting(true);
     setMessage("");
     try {
-      const res = await fetch(`/api/profiles/${profileSlug}/disorder-votes`, {
+      const res = await fetchWithCsrf(`/api/profiles/${profileSlug}/disorder-votes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ disorderId }),

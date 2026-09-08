@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Btn, Typed } from "@/components/dossier";
 import { FormNote, Modal } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 /** The control on the portrait: hover shows a typed label, the modal takes an image address for a moderator to review. */
 export function UploadImageButton({ profileSlug, currentImage }: { profileSlug: string; currentImage?: string | null }) {
@@ -17,7 +18,7 @@ export function UploadImageButton({ profileSlug, currentImage }: { profileSlug: 
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`/api/profiles/${profileSlug}/image`, {
+      const res = await fetchWithCsrf(`/api/profiles/${profileSlug}/image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageUrl: url.trim() }),

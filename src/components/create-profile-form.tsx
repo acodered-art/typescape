@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { TYPING_SYSTEMS } from "@/lib/typing-systems";
 import { Btn, Section, SectionHead, Sheet, Typed } from "@/components/dossier";
 import { FormNote, SelectPaper } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 const SYSTEMS = TYPING_SYSTEMS.filter((s) => s.types?.length);
 const shortName = (name: string) => name.replace(/\s*\(.*\)\s*$/, "").trim() || name;
@@ -64,7 +65,7 @@ export function CreateProfileForm({ initialName }: { initialName?: string }) {
     setError("");
 
     try {
-      const res = await fetch("/api/profiles", {
+      const res = await fetchWithCsrf("/api/profiles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -85,7 +86,7 @@ export function CreateProfileForm({ initialName }: { initialName?: string }) {
           const systems = await systemsRes.json();
           const sys = systems.find((s: { slug: string }) => s.slug === typingSystem);
           if (sys) {
-            await fetch(`/api/profiles/${profile.slug}/typings`, {
+            await fetchWithCsrf(`/api/profiles/${profile.slug}/typings`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ typingSystemId: sys.id, typeValue: typingValue }),

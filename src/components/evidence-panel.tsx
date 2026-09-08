@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Btn, CodeChip, PaperClip, SectionHead, Typed } from "@/components/dossier";
 import { FormNote } from "@/components/dossier/modal";
 import { useReaderHandle } from "@/components/dossier/reader";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface EvidenceItem {
   id: string;
@@ -83,7 +84,7 @@ export function EvidencePanel({ typingId, code, systemName, subject, certified =
     setSubmitting(true);
     setNote("");
     try {
-      const res = await fetch("/api/evidence", {
+      const res = await fetchWithCsrf("/api/evidence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -112,7 +113,7 @@ export function EvidencePanel({ typingId, code, systemName, subject, certified =
 
   const handleVote = async (evidenceId: string, voteValue: 1 | -1) => {
     try {
-      const res = await fetch(`/api/evidence/${evidenceId}/vote`, {
+      const res = await fetchWithCsrf(`/api/evidence/${evidenceId}/vote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ voteValue }),

@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
+  // Redirect HTTP to HTTPS in production (Cloudflare sends x-forwarded-proto).
+  // Skip redirect for localhost/internal requests so local dev and health checks work.
+  const hostname = req.nextUrl.hostname;
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "0.0.0.0";
+  if (!isLocal && process.env.NODE_ENV === "production" && req.headers.get("x-forwarded-proto") === "http") {
+    const url = new URL(req.url);
+    url.protocol = "https:";
+    return NextResponse.redirect(url, 301);
+  }
+
   // Only apply to HTML responses
   if (!req.nextUrl.pathname.startsWith("/_next") && !req.nextUrl.pathname.startsWith("/api")) {
     const response = NextResponse.next();

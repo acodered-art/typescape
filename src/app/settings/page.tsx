@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Btn, PageTitle, Portrait, Sheet, Typed } from "@/components/dossier";
 import { FormNote } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 type Me = { id: string; username: string; email: string | null; bio: string | null; avatarUrl: string | null };
 
@@ -40,7 +41,7 @@ export default function SettingsPage() {
     setMessage("");
     setError("");
     try {
-      const res = await fetch("/api/me/settings", {
+      const res = await fetchWithCsrf("/api/me/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bio: bio.trim(), avatarUrl: avatarUrl.trim() || null }),
