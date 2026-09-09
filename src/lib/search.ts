@@ -21,6 +21,8 @@ export type ProfileDoc = {
   id: string;
   slug: string;
   name: string;
+  /** Alternate spellings and nicknames, so "Straw Hat" finds Luffy. */
+  aliases: string[];
   description: string | null;
   bio: string | null;
   categoryName: string | null;
@@ -71,7 +73,10 @@ export async function ensureProfilesIndex(): Promise<boolean> {
   const settings = await meiliFetch(`/indexes/${PROFILES_INDEX}/settings`, {
     method: "PATCH",
     body: JSON.stringify({
-      searchableAttributes: ["name", "description", "bio", "categoryName", "types"],
+      // `aliases` are alternate names and nicknames (a character's Japanese
+      // name, "Straw Hat" for Luffy). They are searchable but ranked below the
+      // canonical name, which is why the order here matters.
+      searchableAttributes: ["name", "aliases", "description", "bio", "categoryName", "types"],
       // name first, then category, then types; viewCount is only for sorting.
       rankingRules: ["words", "typo", "proximity", "attribute", "sort", "exactness"],
       filterableAttributes: ["types", "categorySlug"],
@@ -171,6 +176,7 @@ export async function buildDocsFromDb(
           description: string | null;
           bio: string | null;
           viewCount: number;
+          externalIds: unknown;
           category: { name: string; slug: string } | null;
           typings: { typeValue: string }[];
         }[]
@@ -188,6 +194,7 @@ export async function buildDocsFromDb(
       description: true,
       bio: true,
       viewCount: true,
+      externalIds: true,
       category: { select: { name: true, slug: true } },
       typings: { select: { typeValue: true } },
     },
@@ -197,6 +204,7 @@ export async function buildDocsFromDb(
     id: p.id,
     slug: p.slug,
     name: p.name,
+    aliases: ((p.externalIds ?? {}) as { aliases?: string[] }).aliases ?? [],
     description: p.description,
     bio: p.bio,
     categoryName: p.category?.name ?? null,

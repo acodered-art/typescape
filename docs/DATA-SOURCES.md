@@ -31,6 +31,36 @@ filterable, attributable, and never mistaken for a reader-created file.
 - Rick and Morty is full of variants (`Alien Morty`, `Antenna Morty`) — 9 of the
   first 56 are Morty variants. Useful for a typing game, noise for a database.
 
+## Major-character import (Kitsu)
+
+`scripts/import-major-characters.mts` fixes the actual problem with the first
+import: it walked sources **alphabetically**, which is why the catalogue filled
+with "The Robber Kitten" and ".GIFfany" rather than anyone a reader knows.
+
+This one ranks by popularity and filters to main cast:
+
+1. take the most-favourited anime from Kitsu (`sort=-favoritesCount`);
+2. fetch each show's cast, keeping only `role = "main"`;
+3. store as a franchise category named after the show.
+
+Result: Luffy, Zoro, Nami, Kurisu, Killua, All Might — 57 characters across 20
+shows, which filled every previously-empty anime category.
+
+```bash
+npx tsx scripts/import-major-characters.mts --shows 20 --apply
+npx tsx scripts/import-major-characters.mts --anime 12 --series "One Piece" --apply
+npx tsx scripts/import-major-characters.mts --supporting --apply   # include side cast
+```
+
+**Disabled by default.** It only runs when invoked with `--apply`, because Kitsu
+publishes no data terms (see below) and this should be a deliberate choice.
+
+Two Kitsu quirks worth knowing: `page[limit]` is **capped at 20** (anything higher
+is a bare 400), and name order is inconsistent — Japanese names come family-first,
+Western names given-first, with nothing to distinguish them. Every variant is
+stored in `externalIds.aliases` and indexed, so "Straw Hat" finds Luffy and
+"Sogeking" finds Usopp.
+
 ## Verified-usable, not yet wired up
 
 | Source | Why not yet |
