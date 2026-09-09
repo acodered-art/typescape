@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, Courier_Prime, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
@@ -48,6 +48,34 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+  // Safari on iOS ignores the web manifest for the home-screen experience and
+  // reads these instead. Without them an installed app opens in a browser
+  // chrome with a white status bar and no icon.
+  icons: {
+    // Safari uses this for the home-screen icon; the manifest icons cover
+    // Android and desktop.
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    title: process.env.NEXT_PUBLIC_SITE_NAME || "TypeScape",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+/** Keeps the browser UI (and the installed PWA status bar) in the site's ink. */
+export const viewport: Viewport = {
+  themeColor: "#01050b",
+  width: "device-width",
+  initialScale: 1,
+  // The desk layout is fixed-width at 1100px; allow zoom for accessibility.
+  maximumScale: 5,
+  // Draw under the notch/rounded corners so the standalone app fills the screen.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
