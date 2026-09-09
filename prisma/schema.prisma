@@ -160,6 +160,11 @@ model Profile {
   metadata    Json?    // {born, occupation, ...}
   createdBy   String?  @map("created_by") @db.Uuid
   isVerified  Boolean  @default(false) @map("is_verified")
+  /// How the record got here: "community" (created by a reader) or
+  /// "import:<source>" (name/image skeleton pulled from an openly-licensed
+  /// source by scripts/import-characters.mts). Imported skeletons carry no
+  /// personality types — those stay community-owned.
+  source      String   @default("community")
   /// Locked files reject new typings and comments until unlocked.
   isLocked    Boolean  @default(false) @map("is_locked")
   /// Staff-only note explaining a lock or a correction in progress.
@@ -179,6 +184,7 @@ model Profile {
   @@index([slug])
   @@index([categoryId])
   @@index([name])
+  @@index([source])
   // Trigram indexes power the Postgres fallback search (`ILIKE '%term%'`) used
   // when MeiliSearch is unavailable. The extension is created by the migration.
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "profiles_name_trgm_idx")
