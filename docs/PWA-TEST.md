@@ -1,5 +1,10 @@
 # Testing the installable app
 
+> **Faster path:** an Android APK is available at
+> `https://episteme-1.tail19de5f.ts.net:8444/download` (or `/downloads/typescape.apk`).
+> It is the same site in a WebView, signed with a test key. Use it if the browser
+> will not offer to install. See `android-app/README.md`.
+
 The app is a PWA: it can be installed to a home screen and opens without a
 browser chrome. This is the test that decides whether a native shell (Capacitor)
 is worth building, so run it on a **real device**, not a desktop emulator.

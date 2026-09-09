@@ -33,6 +33,7 @@ const NAV = [
   { href: "/collections", label: "Collections" },
   { href: "/groups", label: "Groups" },
   { href: "/plans", label: "Plans" },
+  { href: "/download", label: "Get the app" },
 ];
 
 function SearchIcon({ size = 14 }: { size?: number }) {
