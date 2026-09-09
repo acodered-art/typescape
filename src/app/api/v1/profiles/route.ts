@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { guardV1, okWithLimit, fail, pagination } from "@/lib/api-v1";
+import { guardV1, okWithLimit, pagination } from "@/lib/api-v1";
 import { searchProfiles } from "@/lib/search";
 
 /**
