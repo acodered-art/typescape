@@ -12,8 +12,17 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url, 301);
   }
 
-  // Only apply to HTML responses
-  if (!req.nextUrl.pathname.startsWith("/_next") && !req.nextUrl.pathname.startsWith("/api")) {
+  // Only apply to HTML responses. Static PWA assets are excluded deliberately:
+  // a Content-Security-Policy on /sw.js can stop the browser installing the app,
+  // and X-Frame-Options on a manifest is meaningless.
+  const PWA_ASSETS = ["/sw.js", "/manifest.webmanifest", "/embed.js"];
+  const isHtmlDocument =
+    !req.nextUrl.pathname.startsWith("/_next") &&
+    !req.nextUrl.pathname.startsWith("/api") &&
+    !PWA_ASSETS.includes(req.nextUrl.pathname) &&
+    !req.nextUrl.pathname.startsWith("/icons/");
+
+  if (isHtmlDocument) {
     const response = NextResponse.next();
 
     // Security headers — CSP
@@ -22,7 +31,11 @@ export function middleware(req: NextRequest) {
     // TODO: replace 'unsafe-inline' with per-request nonces for stricter CSP
     response.headers.set(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      // worker-src: a service worker without it falls back to default-src, and
+      // some browsers then refuse to register the worker at all — which makes
+      // the app uninstallable. frame-src is needed for nothing today but keeps
+      // the policy explicit.
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     );
     response.headers.set("X-Content-Type-Options", "nosniff");
     response.headers.set("X-Frame-Options", "DENY");

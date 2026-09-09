@@ -12,18 +12,13 @@ export function ServiceWorkerRegistrar() {
     if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
 
-    const register = () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        /* installability is a bonus; never break the page over it */
-      });
-    };
-
-    // Register after load so it never competes with first paint.
-    if (document.readyState === "complete") register();
-    else {
-      window.addEventListener("load", register, { once: true });
-      return () => window.removeEventListener("load", register);
-    }
+    // Register immediately rather than on `load`: the browser only offers the
+    // install prompt once a service worker is active and controlling the page,
+    // and waiting for load adds a delay in which the prompt will not appear.
+    // `register()` is non-blocking, so this does not compete with first paint.
+    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+      /* installability is a bonus; never break the page over it */
+    });
   }, []);
 
   return null;
