@@ -1,26 +1,35 @@
 import { NextResponse } from "next/server";
+import { guardCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/session";
+import { guardCanPost } from "@/lib/post-guard";
 import { calcConsensus, calcVoteWeight } from "@/lib/utils";
 import { rateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/client-ip";
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ tid: string }> }
 ) {
+  const csrfError = await guardCsrf(req);
+  if (csrfError) return csrfError;
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const ip = _req.headers.get("x-forwarded-for") || "unknown";
-  const rl = rateLimit(`vote:${ip}`, 30, 60_000);
+  // A ban or timeout must actually stop writes.
+  const blocked = await guardCanPost(session.user.id);
+  if (blocked?.response) return blocked.response;
+
+  const ip = clientIp(req);
+  const rl = await rateLimit(`vote:${ip}`, 30, 60_000);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Too many votes" }, { status: 429 });
   }
 
   const { tid } = await params;
-  const body = await _req.json();
+  const body = await req.json();
   const { voteValue } = body; // 1 or -1
 
   if (![1, -1].includes(voteValue)) {

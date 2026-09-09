@@ -1,19 +1,39 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { Btn, FolderTab, PageTitle, SectionHead, Sheet, TabStrip, Typed } from "@/components/dossier";
+import { FormNote, Modal, SelectPaper } from "@/components/dossier/modal";
+import { fetchWithCsrf } from "@/lib/csrf-client";
+
+/**
+ * The admin desk.
+ *
+ * Split by blast radius, following how Wikipedia separates a sysop's content
+ * powers from bureaucrat/oversight powers: ordinary moderation lives on /mod and
+ * is not duplicated here. This desk covers people, the record, and the site.
+ *
+ * Anything destructive asks for a reason first — the reason is what makes an
+ * audit log useful six months later.
+ */
 
 interface StatsData {
   counts: Record<string, number>;
   topTypings: { typingSystemId: string; typeValue: string; _count: { id: number } }[];
 }
 
-interface UserData {
+interface AdminUser {
   id: string;
   username: string;
   email: string | null;
   role: string;
+  status: string;
+  effectiveStatus: string;
+  statusUntil: string | null;
+  statusReason: string | null;
   reputation: number;
+  plan: string;
   createdAt: string;
-  _count: { profiles: number; typings: number; votes: number; comments: number };
+  _count: { comments: number; typings: number; votes: number };
 }
 
 interface PendingImage {
@@ -25,204 +45,473 @@ interface PendingImage {
   imageModeration: string;
 }
 
+interface AuditRow {
+  id: string;
+  actorName: string | null;
+  action: string;
+  targetType: string;
+  targetId: string;
+  targetLabel: string | null;
+  reason: string | null;
+  before: unknown;
+  after: unknown;
+  createdAt: string;
+}
+
+interface Maintenance {
+  counts: Record<string, number>;
+  health: { database: string; search: string };
+  lastAction: string | null;
+  lastActionName: string | null;
+  actions: string[];
+}
+
+const WORDS: Record<string, [string, string]> = {
+  profiles: ["file", "files"],
+  typings: ["read", "reads"],
+  votes: ["vote", "votes"],
+  users: ["reader", "readers"],
+  comments: ["note", "notes"],
+  evidence: ["exhibit", "exhibits"],
+  collections: ["collection", "collections"],
+  groups: ["group", "groups"],
+};
+
+function countsSentence(counts: Record<string, number>): string {
+  const parts = Object.entries(counts).map(([k, v]) => {
+    const w = WORDS[k];
+    return w ? `${v} ${v === 1 ? w[0] : w[1]}` : `${v} ${k}`;
+  });
+  if (parts.length === 0) return "Nothing on the record.";
+  if (parts.length === 1) return `${parts[0]} on the record.`;
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]} on the record.`;
+}
+
+const stamp = (iso: string) => new Date(iso).toISOString().slice(0, 16).replace("T", " ");
+
+const STATUS_LABEL: Record<string, string> = {
+  active: "active",
+  timeout: "timed out",
+  banned: "banned",
+};
+
+type Tab = "record" | "readers" | "audit" | "maintenance";
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<StatsData | null>(null);
-  const [users, setUsers] = useState<UserData[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
-  const [tab, setTab] = useState<"stats" | "users" | "images">("stats");
+  const [auditRows, setAuditRows] = useState<AuditRow[]>([]);
+  const [auditActions, setAuditActions] = useState<string[]>([]);
+  const [auditFilter, setAuditFilter] = useState("");
+  const [maintenance, setMaintenance] = useState<Maintenance | null>(null);
+  const [userQuery, setUserQuery] = useState("");
+  const [tab, setTab] = useState<Tab>("record");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [reasonPrompt, setReasonPrompt] = useState<{
+    title: string;
+    body: (reason: string) => Promise<void>;
+  } | null>(null);
+  const [reason, setReason] = useState("");
 
-  const fetchImages = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/images");
-      if (res.ok) setPendingImages(await res.json());
-    } catch {}
+  const loadImages = useCallback(async () => {
+    const res = await fetch("/api/admin/images").catch(() => null);
+    if (res?.ok) setPendingImages(await res.json());
+  }, []);
+
+  const loadUsers = useCallback(async (q = "") => {
+    const res = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`).catch(() => null);
+    if (res?.ok) setUsers((await res.json()).data ?? []);
+  }, []);
+
+  const loadAudit = useCallback(async (action = "") => {
+    const res = await fetch(`/api/admin/audit?action=${encodeURIComponent(action)}`).catch(() => null);
+    if (res?.ok) {
+      const d = await res.json();
+      setAuditRows(d.data ?? []);
+      setAuditActions(d.meta?.actions ?? []);
+    }
+  }, []);
+
+  const loadMaintenance = useCallback(async () => {
+    const res = await fetch("/api/admin/maintenance").catch(() => null);
+    if (res?.ok) setMaintenance((await res.json()).data);
   }, []);
 
   useEffect(() => {
-    fetch("/api/admin/stats").then((r) => { if (r.ok) r.json().then(setStats); });
-    fetch("/api/admin/users").then((r) => { if (r.ok) r.json().then(setUsers); });
-    fetchImages();
-  }, [fetchImages]);
+    let cancelled = false;
+    (async () => {
+      const [sRes] = await Promise.all([
+        fetch("/api/admin/stats").catch(() => null),
+        loadImages(),
+        loadUsers(),
+        loadAudit(),
+        loadMaintenance(),
+      ]);
+      if (!cancelled && sRes?.ok) setStats(await sRes.json());
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadImages, loadUsers, loadAudit, loadMaintenance]);
 
-  const handleImageAction = async (profileId: string, action: "approve" | "reject") => {
+  /** Ask for a reason before anything that will be logged. */
+  const withReason = (title: string, body: (reason: string) => Promise<void>) => {
+    setReason("");
+    setReasonPrompt({ title, body });
+  };
+
+  const runReasoned = async () => {
+    const prompt = reasonPrompt;
+    if (!prompt) return;
+    setBusy(true);
+    setNote("");
     try {
-      const res = await fetch("/api/admin/images", {
-        method: "PATCH",
+      await prompt.body(reason.trim());
+    } finally {
+      setBusy(false);
+      setReasonPrompt(null);
+      setReason("");
+    }
+  };
+
+  const patchUser = async (userId: string, payload: Record<string, unknown>) => {
+    const res = await fetchWithCsrf("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, ...payload }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setNote(d.error || "That did not go through.");
+      return;
+    }
+    await loadUsers(userQuery);
+    await loadAudit();
+  };
+
+  const runMaintenance = async (action: string) => {
+    setBusy(true);
+    setNote("");
+    try {
+      const res = await fetchWithCsrf("/api/admin/maintenance", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileId, action }),
+        body: JSON.stringify({ action }),
       });
-      if (res.ok) fetchImages();
-    } catch {}
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) setNote(d.error || "That did not run.");
+      else {
+        const r = (d.data?.result ?? {}) as Record<string, unknown>;
+        setNote(`${action}: ${Object.entries(r).map(([k, v]) => `${k} ${v}`).join(", ") || "done"}`);
+        await loadMaintenance();
+        await loadAudit();
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[#e8ecf4]">Admin</h1>
-        <div className="flex gap-2 text-sm">
-          <button
-            onClick={() => setTab("stats")}
-            className={`px-3 py-1 rounded transition-colors ${
-              tab === "stats" ? "bg-[#64ffda]/20 text-[#64ffda]" : "text-[#7888a0] hover:text-[#c8d0dc]"
-            }`}
-          >
-            Stats
-          </button>
-          <button
-            onClick={() => setTab("users")}
-            className={`px-3 py-1 rounded transition-colors ${
-              tab === "users" ? "bg-[#64ffda]/20 text-[#64ffda]" : "text-[#7888a0] hover:text-[#c8d0dc]"
-            }`}
-          >
-            Users
-          </button>
-          <button
-            onClick={() => setTab("images")}
-            className={`px-3 py-1 rounded transition-colors ${
-              tab === "images" ? "bg-[#64ffda]/20 text-[#64ffda]" : "text-[#7888a0] hover:text-[#c8d0dc]"
-            }`}
-          >
-            Images {pendingImages.length > 0 && `(${pendingImages.length})`}
-          </button>
+    <div className="pb-10">
+      <PageTitle title="Admin" aside={stats ? countsSentence(stats.counts) : "Opening the desk."} />
+      <TabStrip className="pt-0">
+        <FolderTab active={tab === "record"} onClick={() => setTab("record")}>Record</FolderTab>
+        <FolderTab active={tab === "readers"} onClick={() => setTab("readers")}>Readers</FolderTab>
+        <FolderTab active={tab === "audit"} onClick={() => setTab("audit")}>Audit log</FolderTab>
+        <FolderTab active={tab === "maintenance"} onClick={() => setTab("maintenance")}>Site</FolderTab>
+      </TabStrip>
+
+      {note && (
+        <div className="mb-3">
+          <FormNote>{note}</FormNote>
         </div>
-      </div>
+      )}
 
-      {tab === "stats" && stats && (
-        <div className="space-y-6">
-          {/* Counts */}
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 text-center text-xs">
-            {Object.entries(stats.counts).map(([key, value]) => (
-              <div key={key} className="p-3 rounded border border-[#1a2234] bg-[#0e1420]">
-                <div className="text-lg font-bold text-[#64ffda]">{value.toLocaleString()}</div>
-                <div className="text-[#4a5a70] mt-0.5 capitalize">{key}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Top Typings */}
-          <div>
-            <h2 className="text-sm font-semibold text-[#7888a0] uppercase tracking-wider mb-2">
-              Most Popular Typings
-            </h2>
-            <div className="space-y-1">
-              {stats.topTypings.map((t, i) => (
-                <div
-                  key={`${t.typingSystemId}-${t.typeValue}`}
-                  className="flex items-center justify-between px-3 py-1.5 rounded bg-[#0e1420] border border-[#1a2234] text-sm"
-                >
-                  <span>
-                    <span className="text-[#c8d0dc]">{t.typeValue}</span>
-                    <span className="text-[#4a5a70] ml-2">({t._count.id} assignments)</span>
-                  </span>
-                  <span className="text-[#4a5a70]">#{i + 1}</span>
+      <Sheet className="flex flex-col gap-[14px] p-4">
+        {tab === "record" && (
+          <>
+            <SectionHead title="Most filed reads" aside={stats ? `${stats.topTypings.length} listed` : undefined} />
+            {!stats ? (
+              <Typed>Opening the record.</Typed>
+            ) : stats.topTypings.length === 0 ? (
+              <Typed className="text-md">No reads on the record yet.</Typed>
+            ) : (
+              stats.topTypings.map((t, i) => (
+                <div key={`${t.typingSystemId}-${t.typeValue}`} className="row-fill flex items-baseline justify-between gap-4 px-3 py-[10px]">
+                  <span className="font-typed text-6xl font-bold">{t.typeValue}</span>
+                  <Typed>
+                    {t._count.id} {t._count.id === 1 ? "read" : "reads"}, {i + 1}
+                    {i === 0 ? "st" : i === 1 ? "nd" : i === 2 ? "rd" : "th"}
+                  </Typed>
                 </div>
-              ))}
+              ))
+            )}
+
+            <SectionHead title="Portraits awaiting review" size={20} />
+            {pendingImages.length === 0 ? (
+              <Typed className="text-md">Nothing waiting.</Typed>
+            ) : (
+              pendingImages.map((img) => (
+                <div key={img.id} className="row-fill flex items-center justify-between gap-3 px-3 py-2">
+                  <Link href={`/profiles/${img.slug}`} className="text-lg underline">{img.name}</Link>
+                  <div className="flex gap-2">
+                    <Btn
+                      variant="small"
+                      onClick={async () => {
+                        await fetchWithCsrf("/api/admin/images", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ profileId: img.id, action: "approve" }),
+                        });
+                        await loadImages();
+                      }}
+                    >
+                      Approve
+                    </Btn>
+                    <Btn
+                      variant="small"
+                      onClick={async () => {
+                        await fetchWithCsrf("/api/admin/images", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ profileId: img.id, action: "reject" }),
+                        });
+                        await loadImages();
+                      }}
+                    >
+                      Reject
+                    </Btn>
+                  </div>
+                </div>
+              ))
+            )}
+          </>
+        )}
+
+        {tab === "readers" && (
+          <>
+            <SectionHead title="Readers" aside={`${users.length} shown`} />
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={userQuery}
+                onChange={(e) => setUserQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void loadUsers(userQuery);
+                }}
+                placeholder="Search username or email"
+                className="border border-steel bg-paper px-2 py-1 font-typed text-base text-ink outline-none focus:border-blue"
+              />
+              <Btn variant="small" onClick={() => void loadUsers(userQuery)}>Search</Btn>
             </div>
+
+            {users.length === 0 ? (
+              <Typed className="text-md">No readers match.</Typed>
+            ) : (
+              users.map((u) => (
+                <div key={u.id} className="row-fill flex flex-col gap-2 px-3 py-3 md:grid md:grid-cols-[190px_minmax(0,1fr)_auto] md:items-center md:gap-4">
+                  <div className="flex flex-col">
+                    <Link href={`/user/${u.username}`} className="text-lg underline">{u.username}</Link>
+                    <Typed className="text-xs text-navy">
+                      joined {stamp(u.createdAt)}
+                      {u.email ? ` · ${u.email}` : ""}
+                    </Typed>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="border border-navy px-1.5 font-typed text-xs uppercase">{u.role}</span>
+                    {u.effectiveStatus !== "active" && (
+                      <span className="border border-ink bg-ink px-1.5 font-typed text-xs uppercase text-paper">
+                        {STATUS_LABEL[u.effectiveStatus] ?? u.effectiveStatus}
+                      </span>
+                    )}
+                    <Typed className="text-xs text-navy">
+                      {u._count.comments} notes · {u._count.typings} reads · {u._count.votes} votes
+                    </Typed>
+                    {u.statusReason && (
+                      <Typed className="text-xs italic text-navy">“{u.statusReason}”</Typed>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <SelectPaper
+                      value={u.role}
+                      onChange={(e) => {
+                        const role = e.target.value;
+                        withReason(`Change ${u.username}'s role to ${role}`, async (r) => {
+                          await patchUser(u.id, { action: "role", role, reason: r });
+                        });
+                      }}
+                      className="w-[120px]"
+                    >
+                      <option value="user">user</option>
+                      <option value="moderator">moderator</option>
+                      <option value="admin">admin</option>
+                    </SelectPaper>
+
+                    {u.effectiveStatus === "active" ? (
+                      <>
+                        <Btn
+                          variant="small"
+                          onClick={() =>
+                            withReason(`Time out ${u.username}`, async (r) =>
+                              patchUser(u.id, {
+                                action: "status",
+                                status: "timeout",
+                                until: 1440,
+                                reason: r,
+                              })
+                            )
+                          }
+                        >
+                          1d timeout
+                        </Btn>
+                        <Btn
+                          variant="small"
+                          onClick={() =>
+                            withReason(`Ban ${u.username}`, async (r) =>
+                              patchUser(u.id, { action: "status", status: "banned", reason: r })
+                            )
+                          }
+                        >
+                          Ban
+                        </Btn>
+                      </>
+                    ) : (
+                      <Btn
+                        variant="small"
+                        onClick={() =>
+                          withReason(`Restore ${u.username}`, async (r) =>
+                            patchUser(u.id, { action: "status", status: "active", reason: r })
+                          )
+                        }
+                      >
+                        Restore
+                      </Btn>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </>
+        )}
+
+        {tab === "audit" && (
+          <>
+            <SectionHead title="Audit log" aside={`${auditRows.length} shown`} />
+            <div className="flex flex-wrap gap-2">
+              <SelectPaper
+                value={auditFilter}
+                onChange={(e) => {
+                  setAuditFilter(e.target.value);
+                  void loadAudit(e.target.value);
+                }}
+                className="w-[220px]"
+              >
+                <option value="">All actions</option>
+                {auditActions.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </SelectPaper>
+              <Btn variant="small" onClick={() => void loadAudit(auditFilter)}>Refresh</Btn>
+            </div>
+
+            {auditRows.length === 0 ? (
+              <Typed className="text-md">No actions recorded yet.</Typed>
+            ) : (
+              auditRows.map((row) => (
+                <div key={row.id} className="row-fill flex flex-col gap-1 px-3 py-2">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-typed text-base">
+                      <span className="font-bold">{row.actorName ?? "system"}</span>
+                      {" · "}
+                      <span className="text-blue">{row.action}</span>
+                      {" · "}
+                      {row.targetLabel ?? row.targetId}
+                    </span>
+                    <span className="font-typed text-xs text-steel-2">{stamp(row.createdAt)}</span>
+                  </div>
+                  {row.reason && (
+                    <Typed className="text-sm italic text-navy">“{row.reason}”</Typed>
+                  )}
+                  {row.before || row.after ? (
+                    <Typed className="text-xs text-steel-2">
+                      {row.before ? `before ${JSON.stringify(row.before)}` : ""}
+                      {row.before && row.after ? " → " : ""}
+                      {row.after ? `after ${JSON.stringify(row.after)}` : ""}
+                    </Typed>
+                  ) : null}
+                </div>
+              ))
+            )}
+          </>
+        )}
+
+        {tab === "maintenance" && (
+          <>
+            <SectionHead title="Site health" />
+            {!maintenance ? (
+              <Typed>Checking.</Typed>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-4">
+                  <Typed className="text-md">
+                    database: <span className="font-typed">{maintenance.health.database}</span>
+                  </Typed>
+                  <Typed className="text-md">
+                    search: <span className="font-typed">{maintenance.health.search}</span>
+                  </Typed>
+                </div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-4">
+                  {Object.entries(maintenance.counts).map(([k, v]) => (
+                    <div key={k} className="flex items-baseline justify-between gap-2">
+                      <Typed className="text-sm text-navy">{k}</Typed>
+                      <span className="font-typed text-md">{v}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <SectionHead title="Maintenance actions" size={20} />
+                <div className="flex flex-wrap gap-2">
+                  {maintenance.actions.map((a) => (
+                    <Btn key={a} variant="small" onClick={() => void runMaintenance(a)} disabled={busy}>
+                      {a}
+                    </Btn>
+                  ))}
+                </div>
+                <Typed className="mt-1 text-sm leading-[1.6] text-navy">
+                  reindex-search rebuilds the search index; purge-sessions deletes expired session
+                  rows; recount-consensus recomputes cached agreement from live votes. Each is safe
+                  to run twice and is recorded in the audit log.
+                </Typed>
+              </>
+            )}
+          </>
+        )}
+      </Sheet>
+
+      <Modal open={!!reasonPrompt} onClose={() => setReasonPrompt(null)} title={reasonPrompt?.title ?? ""}>
+        <div className="flex flex-col gap-3">
+          <Typed className="text-base leading-[1.5]">
+            A reason is required. It is shown to the reader and kept in the audit log.
+          </Typed>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            maxLength={500}
+            placeholder="Repeated stereotyping after a warning."
+            className="w-full border border-steel bg-paper px-2 py-1 font-body text-md text-ink outline-none focus:border-blue"
+          />
+          <div className="flex gap-2">
+            <Btn variant="primary" onClick={() => void runReasoned()} disabled={!reason.trim() || busy}>
+              Confirm
+            </Btn>
+            <Btn variant="secondary" onClick={() => setReasonPrompt(null)}>Cancel</Btn>
           </div>
         </div>
-      )}
-
-      {tab === "users" && (
-        <div className="space-y-2">
-          {users.length === 0 ? (
-            <p className="text-sm text-[#4a5a70] italic">No users yet.</p>
-          ) : (
-            users.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between px-3 py-2 rounded bg-[#0e1420] border border-[#1a2234] text-sm"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-[#c8d0dc] font-medium">{user.username}</span>
-                  {user.role !== "user" && (
-                    <span className="text-[#64ffda] text-xs uppercase">{user.role}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-3 text-xs text-[#4a5a70]">
-                    <span>{user.reputation} rep</span>
-                    <span>{user._count.profiles} profiles</span>
-                    <span>{user._count.typings} typings</span>
-                    <span>{user._count.votes} votes</span>
-                  </div>
-                  <div className="flex gap-1 ml-2 border-l border-[#1a2234] pl-2">
-                    {user.role !== "moderator" && (
-                      <button
-                        onClick={async () => {
-                          await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "moderator" }) });
-                          window.location.reload();
-                        }}
-                        className="text-[10px] px-1.5 py-0.5 rounded bg-[#2a3f6e]/20 text-[#8ab4f8] hover:bg-[#2a3f6e]/40"
-                      >
-                        Mod
-                      </button>
-                    )}
-                    {user.role !== "admin" && (
-                      <button
-                        onClick={async () => {
-                          await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "admin" }) });
-                          window.location.reload();
-                        }}
-                        className="text-[10px] px-1.5 py-0.5 rounded bg-[#64ffda]/10 text-[#64ffda] hover:bg-[#64ffda]/20"
-                      >
-                        Admin
-                      </button>
-                    )}
-                    {user.role !== "user" && (
-                      <button
-                        onClick={async () => {
-                          await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, role: "user" }) });
-                          window.location.reload();
-                        }}
-                        className="text-[10px] px-1.5 py-0.5 rounded bg-[#1a2234] text-[#4a5a70] hover:bg-[#2a3a4a]"
-                      >
-                        Demote
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {tab === "images" && (
-        <div className="space-y-2">
-          {pendingImages.length === 0 ? (
-            <p className="text-sm text-[#4a5a70] italic">No pending images.</p>
-          ) : (
-            pendingImages.map((img) => (
-              <div
-                key={img.id}
-                className="flex items-center gap-3 px-3 py-2 rounded bg-[#0e1420] border border-[#1a2234]"
-              >
-                {img.imageUrl && (
-                  <img src={img.imageUrl} alt="" className="w-12 h-12 rounded object-cover bg-[#1a2234]" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm text-[#c8d0dc]">{img.name}</div>
-                  <div className="text-xs text-[#4a5a70]">Status: {img.imageModeration}</div>
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => handleImageAction(img.id, "approve")}
-                    className="px-2 py-1 text-xs rounded bg-[#64ffda]/10 text-[#64ffda] border border-[#64ffda]/20 hover:bg-[#64ffda]/20"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleImageAction(img.id, "reject")}
-                    className="px-2 py-1 text-xs rounded bg-[#ff6b6b]/10 text-[#ff6b6b] border border-[#ff6b6b]/20 hover:bg-[#ff6b6b]/20"
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

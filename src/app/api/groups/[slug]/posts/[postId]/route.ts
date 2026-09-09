@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { guardCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/session";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ slug: string; postId: string }> }
 ) {
   const { slug, postId } = await params;
@@ -38,9 +39,11 @@ export async function GET(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ slug: string; postId: string }> }
 ) {
+  const csrfError = await guardCsrf(req);
+  if (csrfError) return csrfError;
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

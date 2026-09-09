@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import { guardCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/session";
 import { generateSlug } from "@/lib/utils";
 
 export async function POST(req: Request) {
+  const csrfError = await guardCsrf(req);
+  if (csrfError) return csrfError;
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

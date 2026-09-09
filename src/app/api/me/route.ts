@@ -1,14 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/session";
 
-export async function GET(req: NextRequest) {
-  const token = req.cookies.get("session_token")?.value;
-  if (!token) return NextResponse.json({ user: null });
+/**
+ * The signed-in reader, resolved through the shared `auth()` helper so this
+ * works with a cookie (browser), a bearer token (native client), or a NextAuth
+ * session. Returns `{ user: null }` rather than 401 when nobody is signed in —
+ * the header renders a signed-out state from this response.
+ */
+export async function GET() {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ user: null });
 
-  const session = await prisma.session.findFirst({
-    where: { sessionToken: token, expiresAt: { gt: new Date() } },
-    include: { user: { select: { id: true, username: true, email: true, role: true } } },
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      role: true,
+      reputation: true,
+      bio: true,
+      avatarUrl: true,
+      plan: true,
+    },
   });
 
-  return NextResponse.json({ user: session?.user ?? null });
+  return NextResponse.json({ user: user ?? null });
 }

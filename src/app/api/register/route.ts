@@ -1,17 +1,26 @@
 import { NextResponse } from "next/server";
+import { guardCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
+import { checkBodySize } from "@/lib/body-size";
+import { clientIp } from "@/lib/client-ip";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9_-]+$/;
 
 export async function POST(req: Request) {
-  const ip = req.headers.get("x-forwarded-for") || "unknown";
-  const rl = rateLimit(`register:${ip}`, 3, 60_000); // 3 registrations per minute per IP
+  const csrfError = await guardCsrf(req);
+  if (csrfError) return csrfError;
+  const ip = clientIp(req);
+  const rl = await rateLimit(`register:${ip}`, 3, 60_000); // 3 registrations per minute per IP
   if (!rl.allowed) {
     return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }
+
+  // Body size limit
+  const sizeErr = checkBodySize(req);
+  if (sizeErr) return NextResponse.json({ error: sizeErr }, { status: 413 });
 
   const body = await req.json();
   const { username, email, password } = body;
@@ -25,8 +34,8 @@ export async function POST(req: Request) {
   if (!email || typeof email !== "string" || !EMAIL_RE.test(email)) {
     errors.push("Valid email required");
   }
-  if (!password || typeof password !== "string" || password.length < 6) {
-    errors.push("Password must be at least 6 characters");
+  if (!password || typeof password !== "string" || password.length < 8) {
+    errors.push("Password must be at least 8 characters");
   }
   if (errors.length > 0) {
     return NextResponse.json({ error: errors.join("; ") }, { status: 400 });

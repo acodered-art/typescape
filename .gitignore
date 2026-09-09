@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Android build output and signing key (never commit a keystore)
+/android-app/build/
+/android-app/android/key.properties
+/android-app/typescape-release.jks
+/android-app/.dart_tool/
+/android-app/.flutter-plugins*
