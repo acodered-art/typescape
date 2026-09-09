@@ -132,9 +132,15 @@ export function describeBreakdown(
   totalVoters: number,
   noneFloor = 15,
   accentFloor = 15,
-  intermediateGap = 5
+  intermediateGap = 5,
+  /** True when the vector came from something other than reader surveys. */
+  hasData = false
 ): Verdict {
-  if (totalVoters === 0 || breakdown.length === 0) return { kind: "empty" };
+  if (breakdown.length === 0) return { kind: "empty" };
+  // `totalVoters` counts real readers only. A profile whose vector was derived
+  // still has a shape worth describing, so it must not be reported as empty —
+  // the caller passes `hasData` to say so.
+  if (totalVoters === 0 && !hasData) return { kind: "empty" };
 
   const [top, second] = breakdown;
   if (!top || top.percentage < noneFloor) return { kind: "none" };

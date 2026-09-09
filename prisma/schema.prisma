@@ -594,6 +594,11 @@ model TraitVote {
   traitId   String   @map("trait_id") @db.Uuid
   userId    String   @map("user_id") @db.Uuid
   value     Int      // -3 to +3
+  /// "survey" = a reader filled this in. "derived:<systems>" = inferred by
+  /// `derive-traits.ts` from the type the community already agreed on, seeded by
+  /// `scripts/backfill-traits.mts`. Derived rows count less and are never
+  /// presented as community opinion.
+  source    String   @default("survey")
   createdAt DateTime @default(now()) @map("created_at")
 
   profile Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -602,6 +607,7 @@ model TraitVote {
 
   @@unique([profileId, traitId, userId])
   @@index([profileId])
+  @@index([source])
   @@map("trait_votes")
 }
 

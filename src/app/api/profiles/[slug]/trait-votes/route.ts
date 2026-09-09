@@ -14,6 +14,8 @@ import {
   describeInversion,
 } from "@/lib/traits";
 
+/** How much an inferred axis counts against a surveyed one. */
+const DERIVED_WEIGHT = 0.35;
 
 // ─── GET: Community vector + disorder similarity breakdown ────
 
@@ -69,11 +71,18 @@ export async function GET(
     highLabel: string;
     avg: number;
     count: number;
+    derivedCount: number;
+    derivedOnly: boolean;
   }[] = [];
   for (const t of traits) {
     const votes = traitVotes.filter((v) => v.traitId === t.id);
-    const avg = votes.length > 0
-      ? votes.reduce((sum, v) => sum + v.value, 0) / votes.length
+    // A derived row is an inference from a type, not a reader's judgement, so it
+    // counts for less than a survey. Without this the site would present
+    // inference as community opinion.
+    const weightOf = (source: string) => (source === "survey" ? 1 : DERIVED_WEIGHT);
+    const totalWeight = votes.reduce((sum, v) => sum + weightOf(v.source), 0);
+    const avg = totalWeight > 0
+      ? votes.reduce((sum, v) => sum + v.value * weightOf(v.source), 0) / totalWeight
       : 0;
     traitAverages.push({
       traitId: t.id,
@@ -83,7 +92,10 @@ export async function GET(
       lowLabel: t.lowLabel,
       highLabel: t.highLabel,
       avg: Math.round(avg * 100) / 100,
-      count: votes.length,
+      count: votes.filter((v) => v.source === "survey").length,
+      derivedCount: votes.filter((v) => v.source !== "survey").length,
+      /** True when every value on this axis came from derivation. */
+      derivedOnly: votes.length > 0 && votes.every((v) => v.source !== "survey"),
     });
   }
 
@@ -133,8 +145,12 @@ export async function GET(
     };
   });
 
-  const totalVoters = new Set(traitVotes.map((v) => v.userId)).size;
-  const verdict = describeBreakdown(breakdown, totalVoters);
+  // Only readers count as voters; derived rows are attributed to a system
+  // account and must not inflate the "N readers surveyed" line.
+  const surveyVotes = traitVotes.filter((v) => v.source === "survey");
+  const totalVoters = new Set(surveyVotes.map((v) => v.userId)).size;
+  const derived = traitVotes.length > 0 && surveyVotes.length === 0;
+  const verdict = describeBreakdown(breakdown, totalVoters, 15, 15, 5, traitVotes.length > 0);
   const autoNone = verdict.kind === "none";
 
   // `describeBreakdown` works on the minimal {disorderId, similarity,
@@ -188,6 +204,16 @@ export async function GET(
     autoNone,
     description,
     verdict: verdict.kind,
+    /** True when the whole vector was inferred, not surveyed. */
+    derived,
+    /** e.g. ["mbti","enneagram"] — which systems the inference came from. */
+    derivedFrom: [
+      ...new Set(
+        traitVotes
+          .filter((v) => v.source !== "survey")
+          .map((v) => v.source.replace(/^derived:/, ""))
+      ),
+    ],
     topReference,
     inversions,
     invertedPhrase: topId ? describeInversion(nameOf(topId), inversions) : null,

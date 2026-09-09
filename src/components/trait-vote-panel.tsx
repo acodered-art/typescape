@@ -35,6 +35,9 @@ interface BreakdownEntry {
 
 interface VoteData {
   totalVoters: number;
+  /** The whole vector was inferred from the type, not surveyed. */
+  derived?: boolean;
+  derivedFrom?: string[];
   traits: TraitAverage[];
   communityVector: number[];
   myVector: number[];
@@ -231,14 +234,27 @@ export function TraitVotePanel({ profileSlug }: { profileSlug: string }) {
   return (
     <Section className="grid gap-7 md:grid-cols-[560px_minmax(0,1fr)]">
       <div className="flex flex-col gap-[10px]">
-        <SectionHead title="Trait space" aside={loading ? "Opening the survey" : surveyed > 0 ? `${count(surveyed, "reader")} surveyed` : "No surveys yet"} />
+        <SectionHead
+          title="Trait space"
+          aside={
+            loading
+              ? "Opening the survey"
+              : surveyed > 0
+                ? `${count(surveyed, "reader")} surveyed`
+                : voteData?.derived
+                  ? "Estimated from type"
+                  : "No surveys yet"
+          }
+        />
         <div className="border border-ink">
           <TraitMap breakdown={voteData?.breakdown ?? []} surveyed={surveyed} />
         </div>
         <Typed className="text-sm leading-[1.5]">
           {surveyed > 0
             ? "Rings show how closely the community survey matches each pattern. The crosshair sits between the closest ones."
-            : "The map fills in as readers survey this character across twelve traits."}
+            : voteData?.derived
+              ? "No reader has surveyed this character yet. The shape below is estimated from the types on file, and counts for less than a real survey."
+              : "The map fills in as readers survey this character across twelve traits."}
         </Typed>
         {surveyed > 0 && voteData && voteData.communityVector.some((v) => v !== 0) && (
           <div className="mt-2 border-t border-steel pt-3">
